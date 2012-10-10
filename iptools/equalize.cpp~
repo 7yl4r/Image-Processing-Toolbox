@@ -1,0 +1,15 @@
+#include "smooth.h"
+
+void equalize::equalize(){
+	tgt.resize(src.getNumberOfRows(), src.getNumberOfColumns());
+	for (int i=0; i<src.getNumberOfRows(); i++){
+		for (int j=0; j<src.getNumberOfColumns(); j++){
+			//TODO for each ROI:
+			if (roi.InROI(i,j)) {
+				//TODO display ROI area
+				//TODO display histogram
+			}
+		}
+	}
+}
+
