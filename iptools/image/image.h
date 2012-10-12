@@ -33,6 +33,7 @@ public:
    //void show();	//this function didn't work well, so I'm contemplating its removal
    void deleteImage();
    void copyImage(image &img);
+   void resize (const image example);
    void resize (int numberOfRows, int numberOfColumns);
    void setNumberOfRows(int rows);
    void setNumberOfColumns(int columns);
@@ -49,6 +50,7 @@ public:
    bool save (char* file);
    bool save (const char* file);
    bool read (char* file);
+   bool read (const char* file);
    bool isInbounds (const int row, const int col);
 
 

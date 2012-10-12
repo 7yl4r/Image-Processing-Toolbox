@@ -96,6 +96,11 @@ void image::resize (int rows, int columns)
 
 }
 
+/*--- sets size of image to the size of given example image ------------*/
+void image::resize(image example){
+	this->resize(example.getNumberOfRows(),example.getNumberOfColumns());
+}
+
 /*-----------------------------------------------------------------------**/
 void image::setNumberOfRows (int rows)
 {
@@ -114,8 +119,8 @@ void image::setPixel(const int row, const int col, const int value) {
 	if(!isInbounds(row,col))
 		cout<<"ERR: cannot write pixel "<<row<<','<<col<<"; pixel is outside of image.\n";
 	int v = value;
-	if(value>MAXVALUE) v = MAXVALUE;
-	if(value<MINVALUE) v = MINVALUE;
+	if(v>MAXVALUE) v = MAXVALUE;
+	if(v<MINVALUE) v = MINVALUE;
 	data.redChannel [row*data.numColumns+col] = v; 
 }
 
@@ -262,15 +267,19 @@ bool image::save (const char* file)
 	return true;
 }
 
-/*-------------------------------------------------------------------*/
+/*-----------------------------------------------------------------*/
 bool image::save (char* file)
 {
 	const char* name = file;
 	save(name);
 }
-	/*-------------------------------------------------------------------*/
+/*-------------------------------------------------------------------*/
+bool image::read (const char* file){
+	const char* name = file;
+	save(name);
+}
 
-bool image::read (char * file) 
+bool image::read (const char * file) 
 {
 	FILE *fp;
 	char str[50];

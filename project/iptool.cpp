@@ -19,6 +19,7 @@ int main (int argc, char** argv){
 	char imageFile[MAXLEN];	//name of image file
 	cout<<argv[1]<<" is ";
 
+//BEGIN IMAGE PREPPER
 	//check input file format
 	if(strstr(argv[1],".pgm")!='\0'||strstr(argv[1],".ppm")!='\0'){//if pgm or ppm format
 		cout<<"ideal format. swell!\n";
@@ -47,47 +48,108 @@ int main (int argc, char** argv){
 		ROI foi;
 		foi.CreateFOIList(argv[3]);
 		cout<<"region of interest read from file\n";
-		int frame = 1;
-		system("mkdir iptoolVidRecomp");
-		cout<<"processing image files...\n";
-		while(true){	//for all frames
-			string filename = "iptoolVidDecomp/"+utility::intToString(frame)+".ppm";
-			std::ifstream ifile(filename.c_str());
-			if(!ifile) break;
-			ifile.close();
-			if (foi.InROI(frame)) {//call function if in FOI
-				image source;
-				char *fname = new char[filename.length() + 1];
-				strcpy(fname, filename.c_str());
-				source.read(fname);	//load src image
-				string t = "iptoolVidRecomp/"+utility::intToString(frame)+".ppm"; 
-				char *targ = new char[t.length() + 1];
-				strcpy(targ, t.c_str());
-				int argN = 4; //number of args before function name
-				int FargLen = argc - argN;	//length of function args
-				char *fArgs[FargLen];	//get function Args from argv
-				for(int i = 0; i<FargLen; i++){
-					fArgs[i] = argv[argN+i];
-				} 
-				executeFunction(source, targ, foi, FargLen, fArgs);
-			}else{
-				//copy image to output dir
-				system(("mv "+filename+" iptoolVidRecomp/"+utility::intToString(frame)+".ppm").c_str());
+
+		//BEGIN	vidProcSetup
+		string srcDir = "iptoolVidDecomp/";
+		string tgtDir = "iptoolVidRecomp/";
+		system(("mkdir "+tgtDir).c_str());
+		//END vidProcSetup
+
+		//check for any across-frame value functions
+		int map[256];	//value mapping for equalizeVideo
+		if (!strncasecmp(argv[4],"equalizeVideo",MAXLEN)) {
+			cout<<"equalizing video from unified mapping taken over all frames...\n";
+			for(int r=0; r<foi.numBaseROI; r++){	//for each sub-ROI in list (BaseROI)
+				cout<<"FOI #"<<r<<"\n";
+				//compute across-frame mapping
+				equalize::getMap(srcDir,foi.list[r],map);
+				//BEGIN PROCESS FRAMES
+				cout<<"processing image files...\n";
+				int frame = 1;
+				while(true){	//for all frames
+					cout<<"frame "<<frame;
+					//BEGIN imageExists
+					string filename = srcDir+utility::intToString(frame)+".ppm";
+					std::ifstream ifile(filename.c_str());
+					if(!ifile) break;	//exit when out of files
+					ifile.close();
+					//END imageExists
+					cout<<".";
+					if (foi.list[r].InROI(frame)) {//if in this FOI
+						//BEGIN setupSrcImage
+						image source;
+						source.read(filename.c_str());	//load src image
+						//END setupSrcImage
+						image tgt;	//setup tgt image
+						tgt.resize(source);
+						equalize::videoFrame(source, tgt, foi.list[r], map);//equalize the frame using map
+						cout<<".";
+						tgt.save((tgtDir+utility::intToString(frame)+".ppm").c_str());	//save tgt image
+						cout<<".";
+					}else if(!foi.InROI(frame)){	//if not in any ROIs
+						//copy image to output dir
+						system(("mv "+filename+" "+tgtDir+utility::intToString(frame)+".ppm").c_str());
+					}else{	//must be in another FOI
+						//skip this frame (in another ROI)
+						cout<<"..";
+					}
+					frame++;
+					cout<<"done.\t";
+				}
+				//END PROCESS FRAMES
 			}
-			frame++;
+		} else {	//apply image processing to all frames separately
+			//BEGIN PROCESS FRAMES
+			int frame = 1;
+			cout<<"processing image files...\n";
+			while(true){	//for all frames
+				string filename = srcDir+utility::intToString(frame)+".ppm";
+				std::ifstream ifile(filename.c_str());
+				if(!ifile) break;
+				ifile.close();
+				if (foi.InROI(frame)) {//call function if in FOI
+					image source;
+					char *fname = new char[filename.length() + 1];
+					strcpy(fname, filename.c_str());
+					source.read(fname);	//load src image
+					string t = tgtDir+utility::intToString(frame)+".ppm"; 
+					char *targ = new char[t.length() + 1];
+					strcpy(targ, t.c_str());
+					int argN = 4; //number of args before function name
+					int FargLen = argc - argN;	//length of function args
+					char *fArgs[FargLen];	//get function Args from argv
+					for(int i = 0; i<FargLen; i++){
+						fArgs[i] = argv[argN+i];
+					} 
+					//TODO: this function call causes processing to disregard frame selection!
+					executeFunction(source, targ, foi, FargLen, fArgs);
+				}else{
+					//copy image to output dir
+					system(("mv "+filename+" "+tgtDir+utility::intToString(frame)+".ppm").c_str());
+				}
+				frame++;
+			}
+			//END PROCESS FRAMES
 		}
 		cout<<"done.\n";
+		//BEGIN imagesToVideo
 		char cc[] = "avconv -r 25 -i iptoolVidRecomp/%d.ppm ";
 		strcat(cc,argv[2]);
 		system(cc);//remux video with avconv
-		system("rm -r iptoolVidDecomp iptoolVidRecomp");//cleanup
-		cout<<"success!\n";
+
+
+		//system(("rm -r "+ srcDir+" "+tgtDir).c_str());//cleanup
+
+
+		//END imagesToVideo
+		cout<<"SUCCESS! (ignore the upcoming stack-smashing error, images/videos are in your current directory.\n";
 		return 0;
 	} else {
 		cout<<"unrecognize file type\n"; 
 		usageErr();
 		return 0;
 	}
+//END FILE PREPPER
 
 	if(argc==4){	//if script
 		cout<<"running script "<<argv[3]<<"...\n";
@@ -100,7 +162,7 @@ syntax:
 example:
 	"iptool myInput.pgm myOutput.pgm myScript.txt"
 
-This allows for the easy re-use of a coplex series of commands to be performed on one image.
+This allows for the easy re-use of a coplex series of commands to be performed on one image (or video) file.
 
 		//open script file
 		while(!EOF){

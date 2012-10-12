@@ -1,6 +1,6 @@
 #!/bin/bash
 echo "This demo will use default images to demonstrate the advanced capabilities of this image processing tool. Press enter to continue."
-
+read c
 echo " === GreyScale Histogram Equalization 'equalizeGrey' ==="
 echo `./bin/iptool images_for_demo/grocery.pgm demo_equalizeGrey.pgm roi.txt equalizeGrey`
 
@@ -17,3 +17,8 @@ echo " === Color Histogram Equalization of one color channel 'equalizeChannel' =
 echo `./bin/iptool images_for_demo/flowers.ppm demo_equalizeChannelRED.ppm roi.txt equalizeChannel 0`
 echo `./bin/iptool images_for_demo/flowers.ppm demo_equalizeChannelGREEN.ppm roi.txt equalizeChannel 1`
 echo `./bin/iptool images_for_demo/flowers.ppm demo_equalizeChannelBLUE.ppm roi.txt equalizeChannel 2`
+
+echo "the following demo of video processing capability may take some time, press enter to begin"
+read c
+echo "=== Histogram Equalization of Video 'equalizeVideo' ==="
+echo `./bin/iptool videos_for_demo/demo_short.mpeg demo_equalizeVideo.mp4 foi.txt equalizeVideo`

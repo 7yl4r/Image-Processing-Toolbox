@@ -96,6 +96,11 @@ void image::resize (int rows, int columns)
 
 }
 
+/*--- sets size of image to the size of given example image ------------*/
+void image::resize(image example){
+	this->resize(example.getNumberOfRows(),example.getNumberOfColumns());
+}
+
 /*-----------------------------------------------------------------------**/
 void image::setNumberOfRows (int rows)
 {
@@ -262,15 +267,19 @@ bool image::save (const char* file)
 	return true;
 }
 
-/*-------------------------------------------------------------------*/
+/*-----------------------------------------------------------------*/
 bool image::save (char* file)
 {
 	const char* name = file;
 	save(name);
 }
-	/*-------------------------------------------------------------------*/
+/*-------------------------------------------------------------------*/
+bool image::read (char* file){
+	const char* name = file;
+	save(name);
+}
 
-bool image::read (char * file) 
+bool image::read (const char * file) 
 {
 	FILE *fp;
 	char str[50];

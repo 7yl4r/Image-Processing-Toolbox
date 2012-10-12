@@ -58,13 +58,15 @@ void equalize::drawColorHist(int histH[256][3], image &tgt){	//histogram array,i
 void equalize::channel(image &src, image &tgt, ROI roi, int chan){
 	for(int r=0; r<roi.numBaseROI; r++){	//for each sub-ROI in list
 		//cout<<"processing ROI #"<<r<<"; ";
-		// FIND HISTOGRAM
-		int histH[256] = {0};	//histogram array
 		image rImage;
 		rImage.resize(roi.list[r].sx,roi.list[r].sy);
 		//cout<<"w="<<roi.list[r].sx<<", h="<<roi.list[r].sy<<", x="<<roi.list[r].x<<", y="<<roi.list[r].y<<"\n";
 		int nPixels = rImage.getNumberOfRows()*rImage.getNumberOfColumns();	//number of pixels in the ROI
-		//get histogram from pixels
+
+
+		//BEGIN getHistogram
+		//BaseROI roi.list[r], src image, histH[], 
+		int histH[256] = {0};	//histogram array
 		int ri = 0;	//for each pixel in the ROI
 		for(int i=roi.list[r].x; i<(roi.list[r].x+roi.list[r].sx); i++){
 			int rj = 0;
@@ -81,6 +83,9 @@ void equalize::channel(image &src, image &tgt, ROI roi, int chan){
 			}
 			ri++;
 		}
+		//END getHistogram
+
+
 		image hImage;
 		drawHist(histH, hImage);//draw histogram image
 		//save images
@@ -99,7 +104,7 @@ void equalize::channel(image &src, image &tgt, ROI roi, int chan){
 			for(int vv = 0; vv<=v; vv++) cdf[v] += hist[vv];	//add up to get cdf
 			map[v] = round(cdf[v]*(max-min)+min);
 		}
-		//MAP PIXELS IN SOURCE ROI
+		//BEGIN mapPixels //MAP PIXELS IN SOURCE ROI
 		//for each pixel in the ROI
 		int endHist[256] = {0};//resulting histogram
 		for(int i=roi.list[r].x; i<(roi.list[r].x+roi.list[r].sx); i++){
@@ -114,6 +119,7 @@ void equalize::channel(image &src, image &tgt, ROI roi, int chan){
 				endHist[value]++;
 			}
 		}
+		//END mapPixels
 		image resultHImage;
 		drawHist(endHist,resultHImage);
 		resultHImage.save( (fname+"_chan"+utility::intToString(chan)+"ResultHist"+".pgm").c_str() );
@@ -253,8 +259,65 @@ void equalize::colors(image &src, image &tgt, ROI roi){
 	tgt.resize(src.getNumberOfRows(), src.getNumberOfColumns());
 	system("mkdir ROIs");
 	tgt.copyImage(src);	//COPY SRC IMAGE TO TGT
-	//TODO: need different histogram output for each
 	channel(src,tgt,roi,RED);
 	channel(src,tgt,roi,BLUE);
 	channel(src,tgt,roi,GREEN);
+}
+
+// === equalize one image (which is assumed to be a frame in a video) using given mapping ===
+void equalize::videoFrame(image &src, image &tgt, BaseROI roi, int map[]){
+	image HSIsrc;	//convert src to HSI
+	colorSpace::RGBtoHSI(src,HSIsrc);
+	image HSItgt;
+	HSItgt.copyImage(HSIsrc);
+	for(int i=roi.x; i<(roi.x+roi.sx); i++){	//for each pixel
+		for(int j=roi.y; j<(roi.y+roi.sy);j++){
+			if(!HSIsrc.isInbounds(i,j)) {
+				continue;	//skip pixels outside src image
+			}//implied else
+			//set pixel using map
+			int value = map[HSIsrc.getPixel(i,j,INTENSITY)];
+			HSItgt.setPixel(i,j,INTENSITY,value);
+		}
+	}
+	colorSpace::HSItoRGB(HSItgt,tgt);	
+}
+
+// === return mapping created from all images in given directory & FOI ===
+void equalize::getMap(string srcDir, BaseROI foi, int map[]){
+
+	int max = 255, min = 0;		//color value limits
+	unsigned int nPixels = 0;	//total number of pixels	
+	int H[256] = {0};		//cumulative histogram
+	//BEGIN getVideoHist
+	int frame = 0;	//current frame being processed
+	while(true){	//for each frame
+		//BEGIN imageExists
+		string filename = srcDir+utility::intToString(frame)+".ppm";
+		std::ifstream ifile(filename.c_str());
+		if(!ifile) break;	//exit loop when out of files
+		ifile.close();
+		//END imageExists
+		int H[256] = {0}; //cumulative histogram
+		if (foi.InROI(frame)) {
+			image s;	//source image
+			s.read(filename.c_str());	//load image
+			nPixels += s.getNumberOfRows() * s.getNumberOfColumns();	//add image pixels to count
+			image src;	//source image in HSI
+			colorSpace::RGBtoHSI(s,src);
+			//BEGIN getImageHistogram
+			for(int i=foi.x; i<(foi.x+foi.sx); i++){	//for each pixel in the foi
+				for(int j=foi.y; j<(foi.y+foi.sy);j++){
+					if(!src.isInbounds(i,j)) {//skip pixels outside src image
+						nPixels--;	//reduce pixel count
+					}else{
+						int value = src.getPixel(i,j,INTENSITY);
+						H[value]++;
+					}
+				}
+			}
+			//END getImageHistogram
+		}
+	}
+	//END videoHist
 }
