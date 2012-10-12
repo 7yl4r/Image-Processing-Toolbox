@@ -56,48 +56,53 @@ int main (int argc, char** argv){
 		//END vidProcSetup
 
 		//check for any across-frame value functions
-		int map[256];	//value mapping for equalizeVideo
+		int map[foi.numBaseROI][256];	//value mappings for equalizeVideo
 		if (!strncasecmp(argv[4],"equalizeVideo",MAXLEN)) {
 			cout<<"equalizing video from unified mapping taken over all frames...\n";
 			for(int r=0; r<foi.numBaseROI; r++){	//for each sub-ROI in list (BaseROI)
-				cout<<"FOI #"<<r<<"\n";
+				cout<<"FOI #"<<r<<" mapping created.\n";
 				//compute across-frame mapping
-				equalize::getMap(srcDir,foi.list[r],map);
-				//BEGIN PROCESS FRAMES
-				cout<<"processing image files...\n";
-				int frame = 1;
-				while(true){	//for all frames
-					cout<<"frame "<<frame;
-					//BEGIN imageExists
-					string filename = srcDir+utility::intToString(frame)+".ppm";
-					std::ifstream ifile(filename.c_str());
-					if(!ifile) break;	//exit when out of files
-					ifile.close();
-					//END imageExists
-					cout<<".";
-					if (foi.list[r].InROI(frame)) {//if in this FOI
-						//BEGIN setupSrcImage
-						image source;
-						source.read(filename.c_str());	//load src image
-						//END setupSrcImage
-						image tgt;	//setup tgt image
-						tgt.resize(source);
-						equalize::videoFrame(source, tgt, foi.list[r], map);//equalize the frame using map
-						cout<<".";
-						tgt.save((tgtDir+utility::intToString(frame)+".ppm").c_str());	//save tgt image
-						cout<<".";
-					}else if(!foi.InROI(frame)){	//if not in any ROIs
-						//copy image to output dir
-						system(("mv "+filename+" "+tgtDir+utility::intToString(frame)+".ppm").c_str());
-					}else{	//must be in another FOI
-						//skip this frame (in another ROI)
-						cout<<"..";
-					}
-					frame++;
-					cout<<"done.\t";
-				}
-				//END PROCESS FRAMES
+				equalize::getMap(srcDir,foi.list[r],map[r]);
 			}
+
+			//END computeMappings
+			//BEGIN PROCESS FRAMES
+			cout<<"processing image files...\n";
+			int frame = 1;
+			while(true){	//for all frames
+				cout<<"frame "<<frame;
+				//BEGIN imageExists
+				string filename = srcDir+utility::intToString(frame)+".ppm";
+				std::ifstream ifile(filename.c_str());
+				if(!ifile) break;	//exit when out of files
+				ifile.close();
+				//END imageExists
+				if(!foi.InROI(frame)){	//if frame not in any ROIs
+					//copy image to output dir
+					system(("mv "+filename+" "+tgtDir+utility::intToString(frame)+".ppm").c_str());
+					cout<<"unchanged,\t";
+				}else{//frame is in at least 1 foi
+					//BEGIN setupSrcImage
+					image source;
+					source.read(filename.c_str());	//load src image
+					//END setupSrcImage
+					//BEGIN setupTgtImage
+					image tgt;
+					tgt.resize(source);
+					//END setupTgtImage
+					//NOTE: warning! this implementation will not behave properly on overlapping ROIs!
+					for(int rr=0; rr<foi.numBaseROI; rr++){	//for each sub-ROI in list (BaseROI)
+						if (foi.list[rr].InROI(frame)) {//if in this FOI
+							equalize::videoFrame(source, tgt, foi.list[rr], map[rr]);//equalize the frame using map
+							cout<<".";	//dots to show progress, also # of dots indicate # of ROIs frame is in
+						}
+					}
+					tgt.save((tgtDir+utility::intToString(frame)+".ppm").c_str());	//save tgt image
+					cout<<"equalized,\t";
+				}
+				frame++;
+			}
+			//END PROCESS FRAMES
 		} else {	//apply image processing to all frames separately
 			//BEGIN PROCESS FRAMES
 			int frame = 1;
