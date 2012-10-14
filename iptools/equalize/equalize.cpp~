@@ -1,5 +1,7 @@
 #include "equalize.h"
 
+//TODO: separate mapping functions out from the mapping application to allow for less repetetive code.
+
 // === draw a box around the image ==========================
 void equalize::box(image &im){
 	int v = 200;	//value for box edge
@@ -58,7 +60,7 @@ void equalize::drawColorHist(int histH[256][3], image &tgt){	//histogram array,i
 void equalize::channel(image &src, image &tgt, ROI roi, int chan){
 	for(int r=0; r<roi.numBaseROI; r++){	//for each sub-ROI in list
 		//cout<<"processing ROI #"<<r<<"; ";
-		image rImage;
+		image rImage;	//image of ROI region
 		rImage.resize(roi.list[r].sx,roi.list[r].sy);
 		//cout<<"w="<<roi.list[r].sx<<", h="<<roi.list[r].sy<<", x="<<roi.list[r].x<<", y="<<roi.list[r].y<<"\n";
 		int nPixels = rImage.getNumberOfRows()*rImage.getNumberOfColumns();	//number of pixels in the ROI
@@ -93,7 +95,7 @@ void equalize::channel(image &src, image &tgt, ROI roi, int chan){
 		//cout<<"saving "<<fname<<" & histogram\n";
 		rImage.save((fname+"_chan"+utility::intToString(chan)+".pgm").c_str());
 		hImage.save( (fname+"_chan"+utility::intToString(chan)+"hist"+".pgm").c_str() );
-		// CREATE MAPPING USING HISTOGRAM
+		// BEGIN CreateMappingFromHist
 		float hist[256];	//normalized histogram
 		float cdf[256];		//cumulative distrobution function of normalized histogram
 		int map[256]; 	//mapping table for image pixels
@@ -104,22 +106,29 @@ void equalize::channel(image &src, image &tgt, ROI roi, int chan){
 			for(int vv = 0; vv<=v; vv++) cdf[v] += hist[vv];	//add up to get cdf
 			map[v] = round(cdf[v]*(max-min)+min);
 		}
+		//END CreateMappingFromHist
+
+
 		//BEGIN mapPixels //MAP PIXELS IN SOURCE ROI
-		//for each pixel in the ROI
+		fromMap(src,tgt,roi.list[r],map,chan);
+
 		int endHist[256] = {0};//resulting histogram
-		for(int i=roi.list[r].x; i<(roi.list[r].x+roi.list[r].sx); i++){
+		for(int i=roi.list[r].x; i<(roi.list[r].x+roi.list[r].sx); i++){	//for each pixel in the ROI
 			for(int j=roi.list[r].y; j<(roi.list[r].y+roi.list[r].sy);j++){
 				if(!src.isInbounds(i,j)) {
 					continue;	//skip pixels outside src image
 				}//implied else
 				//set pixel using map
 				int value = map[src.getPixel(i,j,chan)];
-				tgt.setPixel(i,j,chan,value);
+//				tgt.setPixel(i,j,chan,value);
 				//CALCULATE RESULTING HISTOGRAM
 				endHist[value]++;
 			}
 		}
 		//END mapPixels
+
+
+
 		image resultHImage;
 		drawHist(endHist,resultHImage);
 		resultHImage.save( (fname+"_chan"+utility::intToString(chan)+"ResultHist"+".pgm").c_str() );
@@ -190,7 +199,7 @@ void equalize::colorAvg(image &src, image &tgt, ROI roi){
 		hImage.save((fname+"_avgHist.pgm").c_str());
 		cHist.save((fname+"_colorHist.ppm").c_str());
 
-		// CREATE MAPPING USING HISTOGRAM
+		// BEGIN createMap
 		float hist[256];	//normalized histogram
 		float cdf[256];		//cumulative distrobution function of normalized histogram
 		int map[256]; 	//mapping table for image pixels
@@ -201,9 +210,11 @@ void equalize::colorAvg(image &src, image &tgt, ROI roi){
 			for(int vv = 0; vv<=v; vv++) cdf[v] += hist[vv];	//add up to get cdf
 			map[v] = round(cdf[v]*(max-min)+min);
 		}
+		// END createMap
 		int endHist[256][3] = {0};	//resulting histogram
 		int endAvgHist[256] = {0};
 		//MAP PIXELS IN SOURCE ROI
+
 		//for each pixel in the ROI
 		for(int i=roi.list[r].x; i<(roi.list[r].x+roi.list[r].sx); i++){
 			for(int j=roi.list[r].y; j<(roi.list[r].y+roi.list[r].sy);j++){
@@ -246,7 +257,7 @@ void equalize::intensity(image &src, image &tgt, ROI roi){
 	image equalizedHSI;
 	equalizedHSI.resize(HSIsrc.getNumberOfRows(), HSIsrc.getNumberOfColumns());
 	equalizedHSI.copyImage(HSIsrc);	//COPY SRC IMAGE TO TGT
-	channel(HSIsrc,equalizedHSI,roi,I);	//equalize the intensity channel
+	channel(HSIsrc,equalizedHSI,roi,BLUE);	//equalize the intensity channel
 //	equalizedHSI.save("HSIequalized.ppm");
 	//convert back to RGB
 	tgt.resize(src.getNumberOfRows(), src.getNumberOfColumns());
@@ -264,33 +275,32 @@ void equalize::colors(image &src, image &tgt, ROI roi){
 	channel(src,tgt,roi,GREEN);
 }
 
-// === equalize one image (which is assumed to be a frame in a video) using given mapping ===
-void equalize::videoFrame(image &src, image &tgt, BaseROI roi, int map[]){
-	image HSIsrc;	//convert src to HSI
-	colorSpace::RGBtoHSI(src,HSIsrc);
-	image HSItgt;
-	HSItgt.copyImage(HSIsrc);
+// === equalize one image using given mapping ===
+void equalize::fromMap(image &src, image &tgt, BaseROI roi, int map[], int chan){
+	//equalize I channel using given mapping
 	for(int i=roi.x; i<(roi.x+roi.sx); i++){	//for each pixel
 		for(int j=roi.y; j<(roi.y+roi.sy);j++){
-			if(!HSIsrc.isInbounds(i,j)) {
+			if(!src.isInbounds(i,j)) {
 				continue;	//skip pixels outside src image
 			}//implied else
 			//set pixel using map
-			int value = map[HSIsrc.getPixel(i,j,INTENSITY)];
-			HSItgt.setPixel(i,j,INTENSITY,value);
+			int value = map[src.getPixel(i,j,chan)];
+			tgt.setPixel(i,j,BLUE,value);
 		}
 	}
-	colorSpace::HSItoRGB(HSItgt,tgt);	
+
 }
+
+//TODO getMap function from one image
 
 // === return mapping created from all images in given directory & FOI ===
 void equalize::getMap(string srcDir, BaseROI foi, int map[]){
 
 	int max = 255, min = 0;		//color value limits
 	unsigned int nPixels = 0;	//total number of pixels	
-	int H[256] = {0};		//cumulative histogram
 	//BEGIN getVideoHist
 	int frame = 0;	//current frame being processed
+	unsigned int H[256] = {0}; //cumulative histogram
 	while(true){	//for each frame
 		//BEGIN imageExists
 		string filename = srcDir+utility::intToString(frame)+".ppm";
@@ -298,21 +308,21 @@ void equalize::getMap(string srcDir, BaseROI foi, int map[]){
 		if(!ifile) break;	//exit loop when out of files
 		ifile.close();
 		//END imageExists
-		int H[256] = {0}; //cumulative histogram
 		if (foi.InROI(frame)) {
 			image s;	//source image
-			s.read(filename.c_str());	//load image
-			nPixels += s.getNumberOfRows() * s.getNumberOfColumns();	//add image pixels to count
+			char *fname;
+			strcpy(fname, filename.c_str());
+			s.read(fname);	//load image
 			image src;	//source image in HSI
 			colorSpace::RGBtoHSI(s,src);
 			//BEGIN getImageHistogram
-			for(int i=foi.list[r].x; i<(foi.list[r].x+foi.list[r].sx); i++){	//for each pixel in the foi
-				for(int j=foi.list[r].y; j<(foi.list[r].y+foi.list[r].sy);j++){
-					if(!src.isInbounds(i,j)) {//skip pixels outside src image
-						nPixels--;	//reduce pixel count
+			for(int i=foi.x; i<(foi.x+foi.sx); i++){	//for each pixel in the foi
+				for(int j=foi.y; j<(foi.y+foi.sy);j++){
+					if(!src.isInbounds(i,j)) {//skip pixels outside src image						//do nothing
 					}else{
-						int value = src.getPixel(i,j,INTENSITY);
+						int value = src.getPixel(i,j,BLUE);
 						H[value]++;
+						nPixels++;	//add total # pixels
 					}
 				}
 			}
@@ -320,4 +330,13 @@ void equalize::getMap(string srcDir, BaseROI foi, int map[]){
 		}
 	}
 	//END videoHist
+	//BEGIN calcMap
+	float hist[max+1], cdf[max+1];
+	for(int v = 0; v<256; v++){	//for each value in histogram (x axis)
+		hist[v] = ((float)H[v])/((float)nPixels);
+		cdf[v] = 0;	//init 0
+		for(int vv = 0; vv<=v; vv++) cdf[v] += hist[vv];	//add up to get cdf
+		map[v] = round(cdf[v]*(max-min)+min);
+	}
+	//END calcMap
 }

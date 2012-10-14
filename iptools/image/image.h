@@ -9,8 +9,7 @@
 
 using namespace std;
 
-enum channelRGB{R, G, B, RED=R, GREEN=G, BLUE=B, GREY=RED, GRAY=GREY};
-enum channelHSI{H, S, I, HUE=H, SATURATION=S, INTENSITY=I};
+enum channel{RED, GREEN, BLUE, GREY=RED, GRAY=GREY};
 
 struct imageData
 {
@@ -30,10 +29,8 @@ public:
    image(int rows, int columns);
    ~image();
    
-   //void show();	//this function didn't work well, so I'm contemplating its removal
    void deleteImage();
    void copyImage(image &img);
-   void resize (const image example);
    void resize (int numberOfRows, int numberOfColumns);
    void setNumberOfRows(int rows);
    void setNumberOfColumns(int columns);
@@ -50,7 +47,6 @@ public:
    bool save (char* file);
    bool save (const char* file);
    bool read (char* file);
-   bool read (const char* file);
    bool isInbounds (const int row, const int col);
 
 

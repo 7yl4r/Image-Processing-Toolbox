@@ -19,9 +19,9 @@ class equalize{
 		static void colors(image &src, image &tgt, ROI roi);
 		static void colorAvg(image &src, image &tgt, ROI roi);
 		static void intensity(image &src, image &tgt, ROI roi);
-		static void videoFrame(image &src, image &tgt, BaseROI roi, int map[]);
+		static void fromMap(image &src, image &tgt, BaseROI roi, int map[]);
 		//other functions:
-		static void getMap(string srcDir, string tgtDir, ROI foi, int map[]);
+		static void getMap(string srcDir, BaseROI foi, int map[]);
 	private:
 		static void box(image &im);
 		static void drawHist(int histH[256], image &tgt);

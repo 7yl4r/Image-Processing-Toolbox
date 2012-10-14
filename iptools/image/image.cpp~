@@ -1,8 +1,5 @@
 #include "image.h"
 
-#define MAXVALUE 255	//max pixel value
-#define MINVALUE 0	//min pixel value
-
 image::image()
 {
 	data.numRows = data.numColumns = 0; 
@@ -30,24 +27,6 @@ image::~image()
 	this->deleteImage();
 }
 
-/*	this function didn't work well, so I'm contemplating its removal
-void image::show(){
-	char n[L_tmpnam];
-	tmpnam(n);
-	char name[L_tmpnam+4+1] = ".";
-	strcat(name,n);
-	strcat(name,".ppm");
-	cout<<"temp image "<<name;
-	system("mkdir tmp");
-	this->save(name);	// save temp image
-	cout<<" saved.\n";
-	char c[L_tmpnam+4+9+1] = "xdg-open ";
-	strcat(c,name);
-	system(c);	// display image
-	//remove(name);// delete temp image (don't, you need it to load first, and who knows how long that will take)
-}
-*/
-
 /*-----------------------------------------------------------------------**/
 bool image::isInbounds (int row, int col) 
 {
@@ -66,9 +45,7 @@ void image::deleteImage()
 	this->data.blueChannel.clear();
 }
 
-/*-----------------------------------------------------------------------*
- * sets image as a copy of given image img
-*/
+/*-----------------------------------------------------------------------**/
 void image::copyImage(image &img) 
 {
 	this->resize(img.getNumberOfRows() ,img.getNumberOfColumns());
@@ -96,11 +73,6 @@ void image::resize (int rows, int columns)
 
 }
 
-/*--- sets size of image to the size of given example image ------------*/
-void image::resize(image example){
-	this->resize(example.getNumberOfRows(),example.getNumberOfColumns());
-}
-
 /*-----------------------------------------------------------------------**/
 void image::setNumberOfRows (int rows)
 {
@@ -116,28 +88,23 @@ void image::setNumberOfColumns (int columns)
 /*-------------------------------------------------------------------*/
 void image::setPixel(const int row, const int col, const int value) {
 	//if outside of range, print error
-	if(!isInbounds(row,col))
+	if( (row > data.numRows) || (col > data.numColumns) )
 		cout<<"ERR: cannot write pixel "<<row<<','<<col<<"; pixel is outside of image.\n";
-	int v = value;
-	if(v>MAXVALUE) v = MAXVALUE;
-	if(v<MINVALUE) v = MINVALUE;
-	data.redChannel [row*data.numColumns+col] = v; 
+	data.redChannel [row*data.numColumns+col] = value; 
 }
 
 
 /*-------------------------------------------------------------------*/
 void image::setPixel(const int row, const int col, const int rgb, const int value){
 	//if outside of range, print error
-	if(!isInbounds(row,col))
+	if( (row > data.numRows) || (col > data.numColumns) )
 		cout<<"ERR: cannot write pixel "<<row<<','<<col<<"; pixel is outside of image.\n";
-	int v = value;
-	if(v>MAXVALUE) v = MAXVALUE;
-	if(v<MINVALUE) v = MINVALUE;
+
 	switch (rgb) 
 	{
-		case RED: data.redChannel [row*data.numColumns+col] = v; break;
-		case GREEN: data.greenChannel [row*data.numColumns+col] = v; break;
-		case BLUE: data.blueChannel [row*data.numColumns+col] = v; break;
+		case RED: data.redChannel [row*data.numColumns+col] = value; break;
+		case GREEN: data.greenChannel [row*data.numColumns+col] = value; break;
+		case BLUE: data.blueChannel [row*data.numColumns+col] = value; break;
 	}
 }
 
@@ -147,10 +114,8 @@ int image::getPixel(const int row, const int col){
 	int c = col;
 
 	//if row or column outside of image, return use edge value
-	if(row >= data.numRows) r = data.numRows;
-	if(col >= data.numColumns) c = data.numColumns;
-	if(row < 0) r = 0;
-	if(col < 0) c = 0;
+	if(row > data.numRows) r = data.numRows;
+	if(col > data.numColumns) c = data.numColumns;
 	return data.redChannel [r*data.numColumns+c]; 
 }
 
@@ -161,10 +126,8 @@ int image::getPixel(const int row, const int col, const int rgb) {
 	int r = row;
 	int c = col;
 	//if row or column outside of image, return use edge value
-	if(row >= data.numRows) r = data.numRows;
-	if(col >= data.numColumns) c = data.numColumns;
-	if(row < 0) r = 0;
-	if(col < 0) c = 0;
+	if(row > data.numRows) r = data.numRows;
+	if(col > data.numColumns) c = data.numColumns;
 	switch (rgb)
 	{
 		case RED: value = data.redChannel [r*data.numColumns+c]; break;
@@ -267,20 +230,17 @@ bool image::save (const char* file)
 	return true;
 }
 
-/*-----------------------------------------------------------------*/
+/*-------------------------------------------------------------------*/
 bool image::save (char* file)
 {
 	const char* name = file;
 	save(name);
 }
-/*-------------------------------------------------------------------*/
-bool image::read (const char* file){
-	const char* name = file;
-	save(name);
-}
+	/*-------------------------------------------------------------------*/
 
-bool image::read (const char * file) 
+bool image::read (char * file) 
 {
+	cout<<"k?\n";
 	FILE *fp;
 	char str[50];
 	unsigned char r, g, b;
@@ -309,22 +269,21 @@ bool image::read (const char * file)
 	while (data.numColumns == -1 || data.numColumns == 0)
 		data.numColumns = getint(fp);
 
+	cout<<"middle\n";
+
 	while (data.numRows == -1 || data.numRows == 0)
 		data.numRows = getint(fp);
+	cout<<"littlePastMiddle\n";
 	resize (data.numRows,data.numColumns);
 	fscanf(fp, "%d", &i) ;  
 	(getc(fp));/* gets the carriage return*/
-
-	if (flag)
-	{
+	if (flag){
 		for (i=0; i < data.numRows*data.numColumns; i++) 
 		{
 			r = (unsigned char) (getc(fp));  
 			data.redChannel [i] = r;
 		}
-	}
-	else 
-	{
+	} else {
 		for (i=0; i < data.numRows*data.numColumns; i++) 
 		{
 			r = (unsigned char) (getc(fp));  
@@ -337,6 +296,7 @@ bool image::read (const char * file)
 	} 
 
 	fclose(fp);
+	cout<<"completed\n";
 	return true;
 }
 
@@ -353,17 +313,17 @@ int image::getint(FILE *fp)
 			while (item != '\n' && item != EOF) item=getc(fp);
 		}
 
-		if (item ==EOF) return 0;
+		if (item ==EOF) {cout<<"EOF\n"; return 11;}	//TODO: I have no idea what this function does, but returning 0 here as it was creates an infinite loop
 		if (item >='0' && item <='9') 
 			{flag = 0;  break;}
 
 	/* illegal values */
-		if ( item !='\t' && item !='\r' 
-			&& item !='\n' && item !=',') return(-1);
-
+		if ( item !='\t' && item !='\r' && item !='\n' && item !=','){
+			cout<<"ERR: illegal value for item\n";
+			return(-1);
+		}
 		item = getc(fp);
 	} while (flag == 1);
-
 
 /* get the number*/
 	i = 0; flag = 1;
@@ -373,11 +333,9 @@ int image::getint(FILE *fp)
 		if (item <'0' || item >'9') {
 			flag = 0; break;}
 			if (item==EOF) break; 
-		} while (flag == 1);
-
-		return i;
-	}
-
+	} while (flag == 1);
+	return i;
+}
 
 
 

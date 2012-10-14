@@ -19,7 +19,7 @@ class equalize{
 		static void colors(image &src, image &tgt, ROI roi);
 		static void colorAvg(image &src, image &tgt, ROI roi);
 		static void intensity(image &src, image &tgt, ROI roi);
-		static void videoFrame(image &src, image &tgt, BaseROI roi, int map[]);
+		static void fromMap(image &src, image &tgt, BaseROI roi, int map[], int chan);
 		//other functions:
 		static void getMap(string srcDir, BaseROI foi, int map[]);
 	private:

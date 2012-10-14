@@ -4,7 +4,6 @@
 
 //thesholding for grey images
 void threshold::thresh(image &src, image &tgt, ROI roi, int thresh){
-	//TODO check for color or .pgm (grey); use calculated grey value for color images passed to this function (or give error)
 	cout<<"threshold = "<<thresh<<". \n";
 	tgt.resize(src.getNumberOfRows(), src.getNumberOfColumns());
 	for (int i=0; i<src.getNumberOfRows(); i++){
@@ -22,6 +21,7 @@ void threshold::thresh(image &src, image &tgt, ROI roi, int thresh){
 
 //thresholding in 3D color space
 void threshold::thresh(image &src, image &tgt, ROI roi, int thresh,int R,int G,int B){
+	cout<<"where";
 	tgt.resize(src.getNumberOfRows(), src.getNumberOfColumns());
 	for (int i=0; i<src.getNumberOfRows(); i++){
 		for (int j=0; j<src.getNumberOfColumns(); j++){
@@ -43,7 +43,7 @@ void threshold::thresh(image &src, image &tgt, ROI roi, int thresh,int R,int G,i
 			}
 		}
 	}
-
+	cout<<"is";
 	for (int i=0; i<src.getNumberOfRows(); i++){
 		for (int j=0; j<src.getNumberOfColumns(); j++){
 			if (roi.InROI(i,j)) {
@@ -58,6 +58,7 @@ void threshold::thresh(image &src, image &tgt, ROI roi, int thresh,int R,int G,i
 			}
 		}
 	}
+	cout<<"error";
 }
 
 // threshold using adaptive given window size

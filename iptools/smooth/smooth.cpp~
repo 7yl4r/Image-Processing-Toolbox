@@ -30,7 +30,7 @@ int smooth::smooth2d(image &src, image &tgt, ROI roi, int winS){
 }
 
 //smooth in horizontal & then vertical direction, producing identical results as 2d smoothing, but with more efficiency.
-int smooth::smooth2d(image &src, image &tgt, ROI roi, int winS){
+int smooth::smooth1d(image &src, image &tgt, ROI roi, int winS){
 	if ((winS-1)%2 || winS < 1){	//if window size is not odd
 		cout<<"ERR: window size "<<winS<<" must be positive, odd int.\n";
 		return 1;

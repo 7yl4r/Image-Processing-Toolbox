@@ -10,63 +10,64 @@ int executeFunction(image src,char tgtLoc[], ROI roi, int ac, char *av[]);
 void usageErr();
 
 int main (int argc, char** argv){
-	//CHECK # OF PARAMETERS
+	//BEGIN checkInput
 	if(argc < 4){
 		usageErr();
 		return 0;
 	} //implied else
-
+	//END checkInput
 	char imageFile[MAXLEN];	//name of image file
 	cout<<argv[1]<<" is ";
-
-//BEGIN IMAGE PREPPER
+	//BEGIN IMAGE PREPPER
 	//check input file format
 	if(strstr(argv[1],".pgm")!='\0'||strstr(argv[1],".ppm")!='\0'){//if pgm or ppm format
 		cout<<"ideal format. swell!\n";
 		strcpy(imageFile,argv[1]);
-	} else if(utility::isImage(argv[1])){	//convert if common format image
+	}else if(utility::isImage(argv[1])){	//convert if common format image
+		//BEGIN convertFromImage
 		cout<<"recognized image format, creating ";
 		strcpy(imageFile,argv[1]);
 		strcat(imageFile,".ppm");
 		cout<<imageFile<<" for processing";
-		char c[] = "convert ";	//command for system
+		char c[MAXLEN] = "convert ";	//command for system
 		strcat(c,argv[1]);
 		strcat(c," ");
 		strcat(c,imageFile);
 		system(c);	//convert using imageMagick
+		//END convertFromImage
 	} else if(utility::isVideo(argv[1])){	//convert if common video formats
 		cout<<"video.\n";
-		system("mkdir iptoolVidDecomp");	//create directory for frames
+		//BEGIN	vidProcSetup
+		string srcDir = "iptoolVidDecomp/";
+		string tgtDir = "iptoolVidRecomp/";
+		system(("mkdir "+srcDir).c_str());	//create directory for frames
+		system(("mkdir "+tgtDir).c_str());
 		cout<<"temp directory created for frames.\n";
 		//convert to images using avconv
-		char c[] = "avconv -i ";
+		char c[MAXLEN] = "avconv -i ";
 		strcat(c,argv[1]);
 		strcat(c," iptoolVidDecomp/%d.ppm");
 		cout<<"extracting frames...\n";
 		system(c);
-		//get Frames of Interest from FOI file
-		ROI foi;
-		foi.CreateFOIList(argv[3]);
-		cout<<"region of interest read from file\n";
-
-		//BEGIN	vidProcSetup
-		string srcDir = "iptoolVidDecomp/";
-		string tgtDir = "iptoolVidRecomp/";
-		system(("mkdir "+tgtDir).c_str());
 		//END vidProcSetup
-
+		//BEGIN getROIs
+		ROI foi;
+		foi.CreateFOIList(argv[3]);//get Frames of Interest from FOI file
+		cout<<"region of interest read from file\n";
+		//END getROIs
 		//check for any across-frame value functions
-		int map[foi.numBaseROI][256];	//value mappings for equalizeVideo
 		if (!strncasecmp(argv[4],"equalizeVideo",MAXLEN)) {
+			//BEGIN equalizeFrames
+			//BEGIN computeMappings
+			int map[foi.numBaseROI][256];	//value mappings for equalizeVideo
 			cout<<"equalizing video from unified mapping taken over all frames...\n";
 			for(int r=0; r<foi.numBaseROI; r++){	//for each sub-ROI in list (BaseROI)
-				cout<<"FOI #"<<r<<" mapping created.\n";
 				//compute across-frame mapping
 				equalize::getMap(srcDir,foi.list[r],map[r]);
+				cout<<"FOI #"<<r<<" mapping created.\n";
 			}
-
 			//END computeMappings
-			//BEGIN PROCESS FRAMES
+			//BEGIN processFrames
 			cout<<"processing image files...\n";
 			int frame = 1;
 			while(true){	//for all frames
@@ -80,25 +81,32 @@ int main (int argc, char** argv){
 				if(!foi.InROI(frame)){	//if frame not in any ROIs
 					//copy image to output dir
 					system(("mv "+filename+" "+tgtDir+utility::intToString(frame)+".ppm").c_str());
-					cout<<"unchanged,\t";
+					cout<<" unchanged\n";
 				}else{//frame is in at least 1 foi
 					//BEGIN setupSrcImage
 					image source;
-					source.read(filename.c_str());	//load src image
+					char fname[MAXLEN];
+					strcpy(fname, filename.c_str());
+					source.read(fname);	//load src image
 					//END setupSrcImage
 					//BEGIN setupTgtImage
 					image tgt;
-					tgt.resize(source);
+					tgt.resize(source.getNumberOfRows(),source.getNumberOfColumns());
 					//END setupTgtImage
 					//NOTE: warning! this implementation will not behave properly on overlapping ROIs!
 					for(int rr=0; rr<foi.numBaseROI; rr++){	//for each sub-ROI in list (BaseROI)
 						if (foi.list[rr].InROI(frame)) {//if in this FOI
-							equalize::videoFrame(source, tgt, foi.list[rr], map[rr]);//equalize the frame using map
-							cout<<".";
+							image HSIsrc;	//convert src to HSI
+							colorSpace::RGBtoHSI(source,HSIsrc);
+							image HSItgt;
+							HSItgt.copyImage(HSIsrc);
+							equalize::fromMap(HSIsrc, HSItgt, foi.list[rr], map[rr],BLUE);//equalize the frame using map
+							colorSpace::HSItoRGB(HSItgt,tgt);	//convert back to RGB for finished image
+							cout<<".";	//dots to show progress, also # of dots indicate # of ROIs frame is in
 						}
 					}
 					tgt.save((tgtDir+utility::intToString(frame)+".ppm").c_str());	//save tgt image
-					cout<<"equalized,\t";
+					cout<<" equalized\n";
 				}
 				frame++;
 			}
@@ -133,32 +141,27 @@ int main (int argc, char** argv){
 					system(("mv "+filename+" "+tgtDir+utility::intToString(frame)+".ppm").c_str());
 				}
 				frame++;
-			}
+			}pie
 			//END PROCESS FRAMES
 		}
 		cout<<"done.\n";
 		//BEGIN imagesToVideo
-		char cc[] = "avconv -r 25 -i iptoolVidRecomp/%d.ppm ";
+		char cc[MAXLEN] = "avconv -r 25 -i iptoolVidRecomp/%d.ppm ";
 		strcat(cc,argv[2]);
 		system(cc);//remux video with avconv
-
-
-		//system(("rm -r "+ srcDir+" "+tgtDir).c_str());//cleanup
-
-
+//TODO		system(("rm -r "+ srcDir+" "+tgtDir).c_str());//cleanup
 		//END imagesToVideo
-		cout<<"SUCCESS! (ignore the upcoming stack-smashing error, images/videos are in your current directory.\n";
+		cout<<"SUCCESS! video is in your current directory.\n";
 		return 0;
 	} else {
 		cout<<"unrecognize file type\n"; 
 		usageErr();
 		return 0;
 	}
-//END FILE PREPPER
-
+	//END FILE PREPPER
 	if(argc==4){	//if script
 		cout<<"running script "<<argv[3]<<"...\n";
-		cout<<"don't do that; it doesn't work.\n";
+		cout<<"don't do that; it doesn't work.\n";	//TODO: fix & remove this line
 /*=== DON'T USE THIS SCRIPTING, IT DOES NOT WORK RIGHT NOW ===================================
 ### Scripting ###
 A list of commands (script) containing a list of functions to perform and a set of parameters for each function can be passed with the input image name and output image name in order to run the script.
@@ -188,10 +191,11 @@ This allows for the easy re-use of a coplex series of commands to be performed o
 
 =======================================================================*/
 	}else{	//attempt to execute assuming all is specified properly
+		cout<<"loading file "<<imageFile<<".\n";
 		image source;	
 		source.read(imageFile);	//load src image
-		cout<<"input file "<<imageFile<<" loaded.\n";
 		int argN = 0; //number of args before function name
+		//BEGIN getROI
 		ROI roi;
 		cout<<"region of interest is ";
 		if(!strncasecmp(argv[3],"all\0",MAXLEN)){	//if ROI is whole image
@@ -207,7 +211,7 @@ This allows for the easy re-use of a coplex series of commands to be performed o
 			roi.CreateList(argv[3]);	//construct from filename
 			argN = 4;
 		}
-
+		//END getROI
 		int FargLen = argc - argN;	//length of function args
 		char *fArgs[FargLen];	//get function Args from argv
 		for(int i = 0; i<FargLen; i++){
@@ -220,7 +224,7 @@ This allows for the easy re-use of a coplex series of commands to be performed o
 			return 0;
 		}
 	}
-	//convert & save to desired format
+	//TODO: convert & save to desired format (right now all image outputs are .ppm or .pgm)
 }
 
 void usageErr(){
@@ -255,12 +259,12 @@ int executeFunction(image src,char tgtLoc[], ROI roi, int ac, char *av[]){
 		threshold::thresh(src,tgt,roi,atoi(av[1]),atoi(av[2]),atoi(av[3]),atoi(av[4]));
 	}else if (!strncasecmp(av[0],"smooth2d",MAXLEN)) {
 		//int winS = atoi(av[1]);
-		if(smooth::smooth2d(src,tgt,roi,atoi(av[1])));
-			cout<<"error in function"<<av[0]<<".\n";
+		if(smooth::smooth2d(src,tgt,roi,atoi(av[1])))
+			cout<<"error in function "<<av[0]<<".\n";
 	}else if (!strncasecmp(av[0],"smooth1d",MAXLEN)) {
 		//int winS = atoi(av[1]);
-		if(smooth::smooth1d(src,tgt,roi,atoi(av[1])));
-			cout<<"error in function"<<av[0]<<".\n";
+		if(smooth::smooth1d(src,tgt,roi,atoi(av[1])))
+			cout<<"error in function "<<av[0]<<".\n";
 	}else if (strncasecmp(av[0],"weightedThreshold",MAXLEN)==0
 		|| strncasecmp(av[0],"weightedThresh",MAXLEN)==0
 		|| strncasecmp(av[0],"adaptiveThreshold",MAXLEN)==0
@@ -272,7 +276,6 @@ int executeFunction(image src,char tgtLoc[], ROI roi, int ac, char *av[]){
 		|| !strncasecmp(av[0],"equalizeGray",MAXLEN)){
 		cout<<"performing greyscale histogram equalization.\n";
 		equalize::grey(src,tgt,roi);
-
 	}else if (!strncasecmp(av[0],"equalizeColors",MAXLEN)){
 		cout<<"performing histogram equalization on colors separately.\n";
 		equalize::colors(src,tgt,roi);
@@ -282,8 +285,6 @@ int executeFunction(image src,char tgtLoc[], ROI roi, int ac, char *av[]){
 	}else if (!strncasecmp(av[0],"equalizeIntensity",MAXLEN)){
 		cout<<"performing equalization using HSI color space.\n";
 		equalize::intensity(src,tgt,roi);
-	}else if (!strncasecmp(av[0],"equalizeAll",MAXLEN)){
-	//else if all colors map
 	}else if (!strncasecmp(av[0],"equalizeChannel",MAXLEN)){
 		int channel = atoi(av[1]);
 		cout<<"equalizing RGB color channel #"<<channel<<'\n';

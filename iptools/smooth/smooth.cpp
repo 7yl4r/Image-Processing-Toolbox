@@ -40,7 +40,7 @@ int smooth::smooth1d(image &src, image &tgt, ROI roi, int winS){
 	image buffer;
 	tgt.resize(src.getNumberOfRows(), src.getNumberOfColumns());
 	buffer.resize(tgt.getNumberOfRows(), tgt.getNumberOfColumns());
-	cout<<"smoothing in horizontal\n";
+	cout<<"smoothing in horizontal...\n";
 	for (int i=0; i<src.getNumberOfRows(); i++){
 		for (int j=0; j<src.getNumberOfColumns(); j++){
 			if (roi.InROI(i,j)) {
@@ -56,7 +56,7 @@ int smooth::smooth1d(image &src, image &tgt, ROI roi, int winS){
 			}
 		}
 	}
-	cout<<"smoothing in vertical\n";
+	cout<<"smoothing in vertical...\n";
 	//convolve result of 1d horizontal with 1D vertical
 	for (int i=0; i<src.getNumberOfRows(); i++){
 		for (int j=0; j<src.getNumberOfColumns(); j++){
@@ -73,5 +73,6 @@ int smooth::smooth1d(image &src, image &tgt, ROI roi, int winS){
 			}
 		}
 	}
+	cout<<"done.\n";
 	return 0;
 }
