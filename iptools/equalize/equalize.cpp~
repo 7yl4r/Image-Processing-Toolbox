@@ -66,9 +66,9 @@ void equalize::channel(image &src, image &tgt, ROI roi, int chan){
 		int nPixels = rImage.getNumberOfRows()*rImage.getNumberOfColumns();	//number of pixels in the ROI
 
 
-		//BEGIN getHistogram
-		//BaseROI roi.list[r], src image, histH[], 
+//		//BEGIN getHistogram
 		int histH[256] = {0};	//histogram array
+		addHist(src, roi.list[r], chan, histH); 
 		int ri = 0;	//for each pixel in the ROI
 		for(int i=roi.list[r].x; i<(roi.list[r].x+roi.list[r].sx); i++){
 			int rj = 0;
@@ -79,13 +79,13 @@ void equalize::channel(image &src, image &tgt, ROI roi, int chan){
 				}else{	//skip pixels outside src image
 					int value = src.getPixel(i,j,chan);
 					rImage.setPixel(ri,rj,value);	//copy pixels to roi image
-					histH[value]++;
+//					histH[value]++;
 					rj++;
 				}
 			}
 			ri++;
 		}
-		//END getHistogram
+//		//END getHistogram
 
 
 		image hImage;
@@ -285,7 +285,7 @@ void equalize::fromMap(image &src, image &tgt, BaseROI roi, int map[], int chan)
 			}//implied else
 			//set pixel using map
 			int value = map[src.getPixel(i,j,chan)];
-			tgt.setPixel(i,j,BLUE,value);
+			tgt.setPixel(i,j,chan,value);
 		}
 	}
 
@@ -293,41 +293,68 @@ void equalize::fromMap(image &src, image &tgt, BaseROI roi, int map[], int chan)
 
 //TODO getMap function from one image
 
-// === return mapping created from all images in given directory & FOI ===
-void equalize::getMap(string srcDir, BaseROI foi, int map[]){
+// === add image pixel values to given histogram
+void equalize::addHist(image &src, BaseROI roi, int chan, int hist[256]){
+	//BEGIN getImageHistogram
+	for(int i=roi.x; i<(roi.x+roi.sx); i++){	//for each pixel in the roi
+		for(int j=roi.y; j<(roi.y+roi.sy);j++){
+			if(src.isInbounds(i,j)) {//skip pixels outside src image
+				int value = src.getPixel(i,j,chan);
+				hist[value]++;
+			}else{
+				//cout<<"roi pixel skipped: not in src image.\n";
+			}
+		}
+	}
+	//END getImageHistogram
+}
 
+// === return mapping created from all images in given directory & FOI ===
+//void equalize::getMap(string srcDir, BaseROI foi, int nFrames, int map[]){
+void equalize::getMap(string srcDir, BaseROI foi, int map[]){
 	int max = 255, min = 0;		//color value limits
-	unsigned int nPixels = 0;	//total number of pixels	
+	int nPixels = 0;	//total number of pixels	
 	//BEGIN getVideoHist
-	int frame = 0;	//current frame being processed
-	unsigned int H[256] = {0}; //cumulative histogram
+	int frame = 1;	//current frame being processed
+	int H[256] = {0}; //cumulative histogram
 	while(true){	//for each frame
+		cout<<"frame "<<frame;
 		//BEGIN imageExists
 		string filename = srcDir+utility::intToString(frame)+".ppm";
 		std::ifstream ifile(filename.c_str());
-		if(!ifile) break;	//exit loop when out of files
+		if(!ifile) {
+			cout<<"file "<<filename<<" not found; assumed end of frames\n";
+			break;	//exit loop when out of files
+		}
 		ifile.close();
 		//END imageExists
-		if (foi.InROI(frame)) {
+
+//	for(frame = 0; frame<nFrames; 
+		if (foi.InROI(frame)) {	//if frame in roi
 			image s;	//source image
 			char *fname;
 			strcpy(fname, filename.c_str());
 			s.read(fname);	//load image
 			image src;	//source image in HSI
 			colorSpace::RGBtoHSI(s,src);
-			//BEGIN getImageHistogram
+//			src.save("blaaaahhhh.ppm");
+			addHist(src,foi,BLUE,H);
+			
+			//BEGIN getNPixels
 			for(int i=foi.x; i<(foi.x+foi.sx); i++){	//for each pixel in the foi
 				for(int j=foi.y; j<(foi.y+foi.sy);j++){
-					if(!src.isInbounds(i,j)) {//skip pixels outside src image						//do nothing
-					}else{
-						int value = src.getPixel(i,j,BLUE);
-						H[value]++;
+					if(src.isInbounds(i,j)) {//skip pixels outside src image
 						nPixels++;	//add total # pixels
+					}else{
+//						cout<<"roi pixel skipped: not in src image.\n";
 					}
 				}
 			}
-			//END getImageHistogram
-		}
+			//END getNPixels
+			cout<<" counted";
+		} else  cout<<" skipped";
+		frame++;
+		cout<<".\n";
 	}
 	//END videoHist
 	//BEGIN calcMap
@@ -336,7 +363,10 @@ void equalize::getMap(string srcDir, BaseROI foi, int map[]){
 		hist[v] = ((float)H[v])/((float)nPixels);
 		cdf[v] = 0;	//init 0
 		for(int vv = 0; vv<=v; vv++) cdf[v] += hist[vv];	//add up to get cdf
-		map[v] = round(cdf[v]*(max-min)+min);
+		map[v] = round(cdf[v]*((float)max-(float)min)+(float)min);
 	}
 	//END calcMap
+	image histI;
+	drawHist(H,histI);
+	histI.save("ehhhh.pgm");
 }

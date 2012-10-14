@@ -56,6 +56,9 @@ void image::copyImage(image &img)
 	}
 }
 
+void image::resize (image example){
+	resize(example.getNumberOfRows(),example.getNumberOfColumns());
+}
 
 /*-----------------------------------------------------------------------**/
 void image::resize (int rows, int columns)
@@ -238,9 +241,7 @@ bool image::save (char* file)
 }
 	/*-------------------------------------------------------------------*/
 
-bool image::read (char * file) 
-{
-	cout<<"k?\n";
+bool image::read (const char * file) {
 	FILE *fp;
 	char str[50];
 	unsigned char r, g, b;
@@ -269,11 +270,8 @@ bool image::read (char * file)
 	while (data.numColumns == -1 || data.numColumns == 0)
 		data.numColumns = getint(fp);
 
-	cout<<"middle\n";
-
 	while (data.numRows == -1 || data.numRows == 0)
 		data.numRows = getint(fp);
-	cout<<"littlePastMiddle\n";
 	resize (data.numRows,data.numColumns);
 	fscanf(fp, "%d", &i) ;  
 	(getc(fp));/* gets the carriage return*/
@@ -296,7 +294,6 @@ bool image::read (char * file)
 	} 
 
 	fclose(fp);
-	cout<<"completed\n";
 	return true;
 }
 
@@ -313,7 +310,7 @@ int image::getint(FILE *fp)
 			while (item != '\n' && item != EOF) item=getc(fp);
 		}
 
-		if (item ==EOF) {cout<<"EOF\n"; return 11;}	//TODO: I have no idea what this function does, but returning 0 here as it was creates an infinite loop
+		if (item ==EOF) { return 11;}	//TODO: I have no idea what this function does, but returning 0 here as it was creates an infinite loop
 		if (item >='0' && item <='9') 
 			{flag = 0;  break;}
 

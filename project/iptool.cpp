@@ -59,7 +59,7 @@ int main (int argc, char** argv){
 		if (!strncasecmp(argv[4],"equalizeVideo",MAXLEN)) {
 			//BEGIN equalizeFrames
 			//BEGIN computeMappings
-			int map[foi.numBaseROI][256];	//value mappings for equalizeVideo
+			int map[foi.numBaseROI+1][256];	//value mappings for equalizeVideo
 			cout<<"equalizing video from unified mapping taken over all frames...\n";
 			for(int r=0; r<foi.numBaseROI; r++){	//for each sub-ROI in list (BaseROI)
 				//compute across-frame mapping
@@ -78,35 +78,44 @@ int main (int argc, char** argv){
 				if(!ifile) break;	//exit when out of files
 				ifile.close();
 				//END imageExists
-				if(!foi.InROI(frame)){	//if frame not in any ROIs
-					//copy image to output dir
-					system(("mv "+filename+" "+tgtDir+utility::intToString(frame)+".ppm").c_str());
-					cout<<" unchanged\n";
-				}else{//frame is in at least 1 foi
+				if(foi.InROI(frame)){	//if frame is in at least 1 ROI
 					//BEGIN setupSrcImage
 					image source;
 					char fname[MAXLEN];
 					strcpy(fname, filename.c_str());
 					source.read(fname);	//load src image
+//
+					image HSIsrc;	//convert src to HSI
+					colorSpace::RGBtoHSI(source,HSIsrc);
+					image HSItgt;
+					HSItgt.copyImage(HSIsrc);
+//
 					//END setupSrcImage
 					//BEGIN setupTgtImage
 					image tgt;
-					tgt.resize(source.getNumberOfRows(),source.getNumberOfColumns());
+					tgt.resize(source);
 					//END setupTgtImage
 					//NOTE: warning! this implementation will not behave properly on overlapping ROIs!
 					for(int rr=0; rr<foi.numBaseROI; rr++){	//for each sub-ROI in list (BaseROI)
 						if (foi.list[rr].InROI(frame)) {//if in this FOI
-							image HSIsrc;	//convert src to HSI
-							colorSpace::RGBtoHSI(source,HSIsrc);
-							image HSItgt;
-							HSItgt.copyImage(HSIsrc);
+							
 							equalize::fromMap(HSIsrc, HSItgt, foi.list[rr], map[rr],BLUE);//equalize the frame using map
-							colorSpace::HSItoRGB(HSItgt,tgt);	//convert back to RGB for finished image
-							cout<<".";	//dots to show progress, also # of dots indicate # of ROIs frame is in
+							// cout<<".";	//dots to show progress, also # of dots indicate # of ROIs frame is in
 						}
 					}
+//
+					colorSpace::HSItoRGB(HSItgt,tgt);	//convert back to RGB for finished image
+//
 					tgt.save((tgtDir+utility::intToString(frame)+".ppm").c_str());	//save tgt image
-					cout<<" equalized\n";
+					 cout<<" equalized\n";
+
+				}else{	//frame in no ROIs
+					//copy image to output dir
+					system(("mv "+filename+" "+tgtDir+utility::intToString(frame)+".ppm").c_str());
+					 cout<<" unchanged\n";
+					
+
+					
 				}
 				frame++;
 			}
@@ -133,7 +142,7 @@ int main (int argc, char** argv){
 					char *fArgs[FargLen];	//get function Args from argv
 					for(int i = 0; i<FargLen; i++){
 						fArgs[i] = argv[argN+i];
-					} 
+					}
 					//TODO: this function call causes processing to disregard frame selection!
 					executeFunction(source, targ, foi, FargLen, fArgs);
 				}else{
@@ -141,7 +150,7 @@ int main (int argc, char** argv){
 					system(("mv "+filename+" "+tgtDir+utility::intToString(frame)+".ppm").c_str());
 				}
 				frame++;
-			}pie
+			}
 			//END PROCESS FRAMES
 		}
 		cout<<"done.\n";

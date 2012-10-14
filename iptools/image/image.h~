@@ -5,7 +5,7 @@
 #include <stdlib.h> 
 #include <vector>
 
-#include <string>
+#include <string.h>
 
 using namespace std;
 
@@ -31,6 +31,7 @@ public:
    
    void deleteImage();
    void copyImage(image &img);
+   void resize (image example);
    void resize (int numberOfRows, int numberOfColumns);
    void setNumberOfRows(int rows);
    void setNumberOfColumns(int columns);
@@ -46,7 +47,8 @@ public:
    bool setChannel(int rgb, vector<int> &channel);   
    bool save (char* file);
    bool save (const char* file);
-   bool read (char* file);
+//   bool read (char* file);
+   bool read (const char* file);
    bool isInbounds (const int row, const int col);
 
 

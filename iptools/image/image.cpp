@@ -56,6 +56,9 @@ void image::copyImage(image &img)
 	}
 }
 
+void image::resize (image example){
+	resize(example.getNumberOfRows(),example.getNumberOfColumns());
+}
 
 /*-----------------------------------------------------------------------**/
 void image::resize (int rows, int columns)
@@ -238,7 +241,12 @@ bool image::save (char* file)
 }
 	/*-------------------------------------------------------------------*/
 
-bool image::read (char * file) {
+/*bool read ( char* file){
+	const char* name = file;
+	return read(name);
+}
+bool image::read (const char * file) {*/
+bool image::read (char *file){
 	FILE *fp;
 	char str[50];
 	unsigned char r, g, b;

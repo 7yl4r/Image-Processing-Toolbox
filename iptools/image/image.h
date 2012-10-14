@@ -31,6 +31,7 @@ public:
    
    void deleteImage();
    void copyImage(image &img);
+   void resize (image example);
    void resize (int numberOfRows, int numberOfColumns);
    void setNumberOfRows(int rows);
    void setNumberOfColumns(int columns);
@@ -47,6 +48,7 @@ public:
    bool save (char* file);
    bool save (const char* file);
    bool read (char* file);
+//   bool read (const char* file);
    bool isInbounds (const int row, const int col);
 
 

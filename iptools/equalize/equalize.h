@@ -22,6 +22,7 @@ class equalize{
 		static void fromMap(image &src, image &tgt, BaseROI roi, int map[], int chan);
 		//other functions:
 		static void getMap(string srcDir, BaseROI foi, int map[]);
+		static void addHist(image &src, BaseROI roi, int chan, int hist[256]);
 	private:
 		static void box(image &im);
 		static void drawHist(int histH[256], image &tgt);
