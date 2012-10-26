@@ -10,5 +10,6 @@
 #include "scale/scale.h"
 #include "smooth/smooth.h"
 #include "equalize/equalize.h"
+#include "colorSpace/colorSpace.h"
 
 #endif

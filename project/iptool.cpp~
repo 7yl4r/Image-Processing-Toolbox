@@ -59,13 +59,13 @@ int main (int argc, char** argv){
 		if (!strncasecmp(argv[4],"equalizeVideo",MAXLEN)) {
 			//BEGIN equalizeFrames
 			//BEGIN computeMappings
-			int map[foi.numBaseROI];	//value mappings for equalizeVideo
+			int map[foi.numBaseROI+1][256];	//value mappings for equalizeVideo
 			cout<<"equalizing video from unified mapping taken over all frames...\n";
-//			for(int r=0; r<foi.numBaseROI; r++){	//for each sub-ROI in list (BaseROI)
+			for(int r=0; r<foi.numBaseROI; r++){	//for each sub-ROI in list (BaseROI)
 				//compute across-frame mapping
-				equalize::getMap(srcDir,foi.list[0],map);
-//				cout<<"FOI #"<<r<<" mapping created.\n";
-//			}
+				equalize::getMap(srcDir,foi.list[r],map[r]);
+				cout<<"FOI #"<<r<<" mapping created.\n";
+			}
 			//END computeMappings
 			//BEGIN processFrames
 			cout<<"processing image files...\n";
@@ -99,7 +99,7 @@ int main (int argc, char** argv){
 					for(int rr=0; rr<foi.numBaseROI; rr++){	//for each sub-ROI in list (BaseROI)
 						if (foi.list[rr].InROI(frame)) {//if in this FOI
 							
-							equalize::fromMap(HSIsrc, HSItgt, foi.list[rr], map,BLUE);//equalize the frame using map
+							equalize::fromMap(HSIsrc, HSItgt, foi.list[rr], map[rr],BLUE);//equalize the frame using map
 							// cout<<".";	//dots to show progress, also # of dots indicate # of ROIs frame is in
 						}
 					}
@@ -158,7 +158,7 @@ int main (int argc, char** argv){
 		char cc[MAXLEN] = "avconv -r 25 -i iptoolVidRecomp/%d.ppm ";
 		strcat(cc,argv[2]);
 		system(cc);//remux video with avconv
-//TODO		system(("rm -r "+ srcDir+" "+tgtDir).c_str());//cleanup
+		system(("rm -r "+ srcDir+" "+tgtDir).c_str());//cleanup
 		//END imagesToVideo
 		cout<<"SUCCESS! video is in your current directory.\n";
 		return 0;
@@ -300,6 +300,19 @@ int executeFunction(image src,char tgtLoc[], ROI roi, int ac, char *av[]){
 		tgt.resize(src.getNumberOfRows(),src.getNumberOfColumns());
 		tgt.copyImage(src);
 		equalize::channel(src,tgt,roi,channel);
+	}else if (!strncasecmp(av[0],"getHistogram",MAXLEN)){
+		cout<<"working on this...\n";
+		int *histP =  equalize::getHist(src, roi.list[0], GREY);
+		cout<<"schweet\n";
+		equalize::drawHist( histP , tgt );
+
+
+
+
+	}else if (!strncasecmp(av[0],"edgeDetect",MAXLEN)){
+		cout<<"applying sobel edge detection\n";
+		edgeDetect::sobel(src,tgt);
+
 	}else{	//return err: command not recognized
 		cout<<"ERR: function "<<av[0]<<" not recognized\n";
 		return 1;

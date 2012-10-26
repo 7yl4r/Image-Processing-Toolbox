@@ -23,7 +23,7 @@ void equalize::drawHist(int histH[256], image &tgt){	//histogram array,image wid
 	int edge = 5;	// width of edge around histogram (pix)
 	int sX = 256 + 2*edge;	// # intensity values (x size)
 	int sY = hMax + 2*edge;
-	tgt.resize(sY,sX);	
+	tgt.resize(sY,sX);
 
 	box(tgt);	//draw box around image
 
@@ -257,7 +257,7 @@ void equalize::intensity(image &src, image &tgt, ROI roi){
 	image equalizedHSI;
 	equalizedHSI.resize(HSIsrc.getNumberOfRows(), HSIsrc.getNumberOfColumns());
 	equalizedHSI.copyImage(HSIsrc);	//COPY SRC IMAGE TO TGT
-	channel(HSIsrc,equalizedHSI,roi,BLUE);	//equalize the intensity channel
+	channel(HSIsrc,equalizedHSI,roi,BLUE);	//equalize the intensity channel	
 //	equalizedHSI.save("HSIequalized.ppm");
 	//convert back to RGB
 	tgt.resize(src.getNumberOfRows(), src.getNumberOfColumns());
@@ -291,7 +291,13 @@ void equalize::fromMap(image &src, image &tgt, BaseROI roi, int map[], int chan)
 
 }
 
-//TODO getMap function from one image
+// == return histogram from given image 
+int *equalize::getHist(image &src, BaseROI roi, int chan){
+	int *h = new int[256];
+	std::fill_n(h,256,0);
+	addHist(src,roi,chan,h);
+	return h;
+}
 
 // === add image pixel values to given histogram
 void equalize::addHist(image &src, BaseROI roi, int chan, int hist[256]){

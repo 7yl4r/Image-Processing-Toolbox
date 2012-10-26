@@ -11,5 +11,6 @@
 #include "smooth/smooth.h"
 #include "equalize/equalize.h"
 #include "colorSpace/colorSpace.h"
+#include "edgeDetect/edgeDetect.h"
 
 #endif

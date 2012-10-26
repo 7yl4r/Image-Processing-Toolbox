@@ -20,5 +20,5 @@ echo `./bin/iptool images_for_demo/flowers.ppm demo_equalizeChannelBLUE.ppm roi.
 
 echo "the following demo of video processing capability may take some time, press enter to begin"
 read c
-echo "=== Histogram Equalization of Video 'equalizeChannel' ==="
-echo `./bin/iptool videos_for_demo/demo_short.mpeg demo_equalizeVideo.mp4 foi.txt equalizeVideo`
+echo "=== Histogram Equalization of Video 'equalizeIntensity' ==="
+echo `./bin/iptool videos_for_demo/demo_short.mpeg demo_equalizeVideo.mp4 foi.txt equalizeIntensity`

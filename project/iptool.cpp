@@ -158,7 +158,7 @@ int main (int argc, char** argv){
 		char cc[MAXLEN] = "avconv -r 25 -i iptoolVidRecomp/%d.ppm ";
 		strcat(cc,argv[2]);
 		system(cc);//remux video with avconv
-//TODO		system(("rm -r "+ srcDir+" "+tgtDir).c_str());//cleanup
+		system(("rm -r "+ srcDir+" "+tgtDir).c_str());//cleanup
 		//END imagesToVideo
 		cout<<"SUCCESS! video is in your current directory.\n";
 		return 0;
@@ -300,6 +300,18 @@ int executeFunction(image src,char tgtLoc[], ROI roi, int ac, char *av[]){
 		tgt.resize(src.getNumberOfRows(),src.getNumberOfColumns());
 		tgt.copyImage(src);
 		equalize::channel(src,tgt,roi,channel);
+	}else if (!strncasecmp(av[0],"getHistogram",MAXLEN)){
+		cout<<"working on this...\n";
+		int *histP =  equalize::getHist(src, roi.list[0], GREY);
+		equalize::drawHist( histP , tgt );
+
+
+
+
+	}else if (!strncasecmp(av[0],"edgeDetect",MAXLEN)){
+		cout<<"applying sobel edge detection\n";
+		edgeDetect::sobel(src,tgt);
+
 	}else{	//return err: command not recognized
 		cout<<"ERR: function "<<av[0]<<" not recognized\n";
 		return 1;
