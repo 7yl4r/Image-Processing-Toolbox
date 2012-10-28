@@ -1,13 +1,18 @@
 #include "../iptools/core.h"
 
 #include <string.h>
+
 #include <fstream>
+#include <iomanip> // for setprecision()
 
 #define MAXLEN 256//max length of function name string or filename
 
 //local methods:
 int executeFunction(image src,char tgtLoc[], ROI roi, int ac, char *av[]);
 void usageErr();
+
+//global vars (b/c I'm being lazy)
+bool ISCOLOR = true;	//default true, set false if it is grey
 
 int main (int argc, char** argv){
 	//BEGIN checkInput
@@ -20,8 +25,12 @@ int main (int argc, char** argv){
 	cout<<argv[1]<<" is ";
 	//BEGIN IMAGE PREPPER
 	//check input file format
-	if(strstr(argv[1],".pgm")!='\0'||strstr(argv[1],".ppm")!='\0'){//if pgm or ppm format
-		cout<<"ideal format. swell!\n";
+	if(strstr(argv[1],".pgm")!='\0'){
+		cout<<"ideal greyScale format. swell!\n";
+		strcpy(imageFile,argv[1]);
+		ISCOLOR = false;	//else this is TRUE
+	} else if(strstr(argv[1],".ppm")!='\0'){//if pgm or ppm format
+		cout<<"ideal color format. swell!\n";
 		strcpy(imageFile,argv[1]);
 	}else if(utility::isImage(argv[1])){	//convert if common format image
 		//BEGIN convertFromImage
@@ -209,7 +218,7 @@ This allows for the easy re-use of a coplex series of commands to be performed o
 		cout<<"region of interest is ";
 		if(!strncasecmp(argv[3],"all\0",MAXLEN)){	//if ROI is whole image
 			cout<<"whole image\n";
-			roi.CreateList(0,0,source.getNumberOfColumns(),source.getNumberOfRows());
+			roi.CreateList(0,0,source.getNumberOfRows(),source.getNumberOfColumns());
 			argN = 4;
 		}else if(atoi(argv[3]) && atoi(argv[4]) && atoi(argv[5]) && atoi(argv[6])){	//if ROI is x,y,sx,sy notation
 			cout<<"x="<<argv[3]<<" y="<<argv[4]<<" sx="<<argv[5]<<" sy="<<argv[6]<<'\n';
@@ -303,16 +312,52 @@ int executeFunction(image src,char tgtLoc[], ROI roi, int ac, char *av[]){
 	}else if (!strncasecmp(av[0],"getHistogram",MAXLEN)){
 		cout<<"working on this...\n";
 		int *histP =  equalize::getHist(src, roi.list[0], GREY);
-		cout<<"schweet\n";
 		equalize::drawHist( histP , tgt );
-
-
-
-
 	}else if (!strncasecmp(av[0],"edgeDetect",MAXLEN)){
-		cout<<"applying sobel edge detection\n";
-		edgeDetect::sobel(src,tgt);
-
+		cout<<"applying sobel edge detection";
+		tgt.resize(src);
+		if(ISCOLOR){
+			cout<<" to intensity of color image...\n";
+			image HSIsrc, HSItgt;
+			HSIsrc.resize(src);
+			HSItgt.resize(src);
+			colorSpace::RGBtoHSI(src,HSIsrc);
+			// edgeDetect on I
+			if(ac == 1) edgeDetect::sobel(HSIsrc,tgt,BLUE);//Intensity=BLUE
+			else if(ac == 2){
+				int T = atoi(av[1]);	//threshold
+				cout<<"threshold = "<<T<<"\n";
+				edgeDetect::sobel(HSIsrc,HSItgt,roi,BLUE,T);//Intensity=BLUE
+			}
+			colorSpace::HSItoRGB(HSItgt,tgt);
+		}else{//is grey
+			cout<<" to greyscale image...\n";
+			if(ac == 1) edgeDetect::sobel(src,tgt,GREY);
+			else if(ac == 2){
+				int T = atoi(av[1]);	//threshold
+				cout<<"threshold = "<<T<<"\n";
+				edgeDetect::sobel(src,tgt,roi,GREY,T);
+			}
+		}
+	}else if (!strncasecmp(av[0],"detectEdgeDirection",MAXLEN)){
+		if(atoi(av[2])<0||atoi(av[3])<0) cout<<"ERR?: angles should be >0... I think...\n";
+		tgt.resize(src);
+		int T  = atoi(av[1]);	//threshold
+		float degToRad = 3.141592653589793238462643383279502884f/180.0f;
+		float A1 = degToRad * atof(av[2]);	//angle start point (convert from degrees)
+		float A2 = degToRad * atof(av[3]);	//angle end point
+		cout << setprecision(4);
+		cout<<"detecting edges with gradient magnitude >"<<T<<" between the angles "<<A1<<" and "<< A2 <<"(radians)...\n";
+		if(ISCOLOR){
+			image HSIsrc, HSItgt;
+			HSIsrc.resize(src);
+			HSItgt.resize(src);
+			colorSpace::RGBtoHSI(src,HSIsrc);
+			edgeDetect::directional(HSIsrc,HSItgt,roi,BLUE,T,A1,A2);// edgeDetect on I (Intensity = BLUE)
+			colorSpace::HSItoRGB(HSItgt,tgt);
+		}else{//is grey
+			edgeDetect::directional(src,tgt,roi,GREY,T,A1,A2);
+		}
 	}else{	//return err: command not recognized
 		cout<<"ERR: function "<<av[0]<<" not recognized\n";
 		return 1;
