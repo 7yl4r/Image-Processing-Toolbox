@@ -4,8 +4,6 @@
 #include "../image/image.h"
 #include "../roi/roi.h"
 
-#include "../arrayDisplay/arrayDisplay.h"	//for drawing array to image
-
 #include <sstream>
 #include <math.h>
 

@@ -30,34 +30,17 @@ int edgeDetect::sobelY(image &src, int chan, int x, int y){
 	return G;//return gradient value
 }
 
-//returns grad magnitude from image src at point (x,y)
-float edgeDetect::sobelMagnitude(image &src, int chan, int x, int y){
-	float G = sqrt(pow((float)sobelX(src,chan,x,y),2.0f)+pow((float)sobelY(src,chan,x,y),2.0f));
-//	if(x%10==0&&y%10==0) cout<<"grad magnitude@("<<x<<','<<y<<"):"<<G<<"\n";	//debug output
-//	if(G>1000.0f) cout<<"grad magnitude@("<<x<<','<<y<<"):"<<G<<"\n";	//debug output
-	return G;
-}
-
-// this following method can used in place of the thresholding approach to provide a quantized grad image (instead of binary)
-//writes gradient value to image
-void edgeDetect::sobel(image &src, image &tgt, ROI roi, int chan){
-	tgt.copyImage(src);	//copy image to tgt (for areas not in ROI)
-	float buffer[src.getNumberOfRows()][src.getNumberOfColumns()];// = {0};	//buffer to temporarily store grad values
-	for(int i = 0; i < src.getNumberOfRows(); i++){//for each pixel in roi
-		for(int j = 0; j<src.getNumberOfColumns(); j++){
-			if(!roi.InROI(i,j)) continue;	//don't bother calculating
-			buffer[i][j] = sobelMagnitude(src,chan,i,j);//get gradient magnitudes
-		}
-	}
-	//BEGIN writeAdjustedGradValues
+// adjust array values to be in the range 0-255
+void normalizeArray(float **buffer,int nRows,int nCols){
+//BEGIN normalizeArray
 	//get boundary values to adjust range of values to 0-255
 	float upperOutlierLimit = 200.0f;
 	float lowerOutlierLimit = 0.0f;
 	int pixOnFloor = 0,pixOnCeil = 0;	//count of pixels outside set dynamic range
  	float max = lowerOutlierLimit;	//max pixel value
 	float min = upperOutlierLimit;	//min pixel value
-	for(int i = 0; i < src.getNumberOfRows(); i++){//for each pixel in roi
-		for(int j = 0; j<src.getNumberOfColumns(); j++){
+	for(int i = 0; i < nRows; i++){//for each pixel in roi
+		for(int j = 0; j<nCols; j++){
 			// skip outliers
 			if ( buffer[i][j] > upperOutlierLimit||buffer[i][j] < lowerOutlierLimit){
 				if( buffer[i][j] > upperOutlierLimit){
@@ -70,16 +53,63 @@ void edgeDetect::sobel(image &src, image &tgt, ROI roi, int chan){
 		}
 	}
 	cout<<"max="<<max<<" onCeiling="<<pixOnCeil<<", min="<<min<<" onFloor="<<pixOnFloor<<'\n';
+	for(int i = 0; i < nRows; i++){//for each pixel in roi
+		for(int j = 0; j<nCols; j++){
+			buffer[i][j]=round(buffer[i][j]*max/255.0f - min);
+		}
+	}
+	//END normalizeArray
+}
+
+//returns grad magnitude from image src at point (x,y)
+float edgeDetect::sobelMagnitude(image &src, int chan, int x, int y){
+	float G = sqrt(pow((float)sobelX(src,chan,x,y),2.0f)+pow((float)sobelY(src,chan,x,y),2.0f));
+//	if(x%10==0&&y%10==0) cout<<"grad magnitude@("<<x<<','<<y<<"):"<<G<<"\n";	//debug output
+//	if(G>1000.0f) cout<<"grad magnitude@("<<x<<','<<y<<"):"<<G<<"\n";	//debug output
+	return G;
+}
+
+// this following method can used in place of the thresholding approach to provide a quantized grad image (instead of binary)
+//writes gradient value to image
+void edgeDetect::sobel(image &src, image &tgt, ROI roi, int chan){
+	tgt.copyImage(src);	//copy image to tgt (for areas not in ROI)
+	int sizeY = src.getNumberOfRows();
+	int sizeX = src.getNumberOfColumns();
+	float **buffer = new float*[sizeY];// = {0};	//buffer to temporarily store grad values
+	for(int i = 0; i < sizeY; ++i) {
+	    buffer[i] = new float[sizeX];
+	}
+	for(int i = 0; i < src.getNumberOfRows(); i++){//for each pixel in roi
+		for(int j = 0; j<src.getNumberOfColumns(); j++){
+			if(!roi.InROI(i,j)) continue;	//don't bother calculating
+			buffer[i][j] = sobelMagnitude(src,chan,i,j);//get gradient magnitudes outside ROI
+		}
+	}
+	//BEGIN writeAdjustedGradValues
+	normalizeArray(buffer,src.getNumberOfRows(),src.getNumberOfColumns());
+
+
+
+
+
+
+
+
 	for(int i = 0; i < src.getNumberOfRows(); i++){//for each pixel in roi
 		for(int j = 0; j<src.getNumberOfColumns(); j++){
 			if (roi.InROI(i,j)){
-				// write (adjusted) grad value to tgt image
-				tgt.setPixel(i,j,chan,round(buffer[i][j]*max/255.0f - min));
+				tgt.setPixel(i,j,chan,buffer[i][j]);// write (adjusted) grad value to tgt image
 			}else{
 				tgt.setPixel(i,j,chan,src.getPixel(i,j,chan));
 			}
 		}
 	}
+	//BEGIN cleanupBuffer
+	for(int i = 0; i < sizeY; ++i) {
+	    delete [] buffer[i];
+	}
+	delete [] buffer;
+	//END cleanupBuffer
 	//END writeAdjustedGradValues
 }
 

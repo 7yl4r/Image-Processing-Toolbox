@@ -13,6 +13,5 @@
 #include "colorSpace/colorSpace.h"
 #include "edgeDetect/edgeDetect.h"
 #include "circleDetect/circleDetect.h"
-#include "arrayDisplay/arrayDisplay.h"
 
 #endif
