@@ -1,5 +1,5 @@
 # source files.
-SRC =  image/image.cpp utility/utility.cpp roi/roi.cpp add/add.cpp threshold/threshold.cpp scale/scale.cpp smooth/smooth.cpp equalize/equalize.cpp colorSpace/colorSpace.cpp edgeDetect/edgeDetect.cpp circleDetect/circleDetect.cpp arrayDisplay/arrayDisplay.cpp
+SRC =  image/image.cpp utility/utility.cpp roi/roi.cpp add/add.cpp threshold/threshold.cpp scale/scale.cpp smooth/smooth.cpp equalize/equalize.cpp colorSpace/colorSpace.cpp edgeDetect/edgeDetect.cpp circleDetect/circleDetect.cpp 
 
 OBJ = $(SRC:.cpp=.o)
 
