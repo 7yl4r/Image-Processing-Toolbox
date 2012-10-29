@@ -30,8 +30,8 @@ int edgeDetect::sobelY(image &src, int chan, int x, int y){
 	return G;//return gradient value
 }
 
-// adjust array values to be in the range 0-255
-void normalizeArray(float **buffer,int nRows,int nCols){
+// adjust array values to be in the range 0-255 using floor & ceiling
+void normalizeArrayFloorCeil(float **buffer,int nRows,int nCols){
 //BEGIN normalizeArray
 	//get boundary values to adjust range of values to 0-255
 	float upperOutlierLimit = 200.0f;
@@ -53,13 +53,64 @@ void normalizeArray(float **buffer,int nRows,int nCols){
 		}
 	}
 	cout<<"max="<<max<<" onCeiling="<<pixOnCeil<<", min="<<min<<" onFloor="<<pixOnFloor<<'\n';
-	for(int i = 0; i < nRows; i++){//for each pixel in roi
+	for(int i = 0; i < nRows; i++){//for each pixel
 		for(int j = 0; j<nCols; j++){
 			buffer[i][j]=round(buffer[i][j]*max/255.0f - min);
 		}
 	}
 	//END normalizeArray
 }
+// adjust array values to be in the range 0-255 by spreading equally into bins
+//TODO:NOTE: will spread into as many bins as possible up to 255, if < 255 unique values in the array, then the number of unique values will be used. Thus, if a binary image array is passed, a binary spread will be returned
+void normalizeArray(float **buffer,int nRows,int nCols){
+//BEGIN normalizeArray
+	//get boundary values to adjust range of values to 0-255
+	int nPix = nRows*nCols;	//count of pixels
+	int pixPerBin = round((float)nPix/256.0f);//don't worry about preciseness here, bins will still fill up acceptably
+	float sorted[nPix];	//create sorted array of all values
+	//copy values into sortArray
+	for(int i = 0; i < nRows; i++){//for each pixel
+		for(int j = 0; j<nCols; j++){
+			sorted[i*nRows+j] = buffer[i][j];
+		}
+	}
+	float* first(&sorted[0]);
+	float* last(first + 4);
+	sort(first,last, std::greater<float>());//sort the array
+	int bins[256] = {0};	//create array of bin edges (top of each bin)
+	bins[0] = sorted[pixPerBin];
+	int pixDone = 0;	//pixel offset used to shift bin count start location
+	for(int b = 1; b<256; b++){	//for each bin
+		//binMax = sortedArry[ bin# * numpixPerBin]
+		bins[b] = sorted[pixPerBin+pixDone];
+		pixDone += pixPerBin;
+//		cout<<pixDone<<'\n';
+		/*
+		while(bins[b]==bins[b-1]&&pixDone<nPix){//check for bin redundancy
+			int pixLeft = nPix-pixDone;
+			int binsLeft = 256-b;
+			pixPerBin = round((float)pixLeft/(float)binsLeft)+1;//change pixPerBin for future bins (+1 to ensure that always at least 1 pixel)
+			bins[b] = (int)round(sorted[pixDone+pixPerBin]); //get new bin max
+			pixDone += pixPerBin;
+//			cout<<pixLeft<<'\n';
+		}
+		*/
+	}
+	for(int i = 0; i < nRows; i++){//for each pixel 
+		for(int j = 0; j<nCols; j++){
+			//find pixel bin (compare to bin maxes until <=)
+			for(int b = 0; b<256; b++){	//for each bin
+				//set pixel value to corresponding bin
+				if(buffer[i][j]<=bins[b]){
+					buffer[i][j]=(float)b;
+					break;
+				}
+			}
+		}
+	}
+	//END normalizeArray
+}
+
 
 //returns grad magnitude from image src at point (x,y)
 float edgeDetect::sobelMagnitude(image &src, int chan, int x, int y){
@@ -76,25 +127,17 @@ void edgeDetect::sobel(image &src, image &tgt, ROI roi, int chan){
 	int sizeY = src.getNumberOfRows();
 	int sizeX = src.getNumberOfColumns();
 	float **buffer = new float*[sizeY];// = {0};	//buffer to temporarily store grad values
-	for(int i = 0; i < sizeY; ++i) {
-	    buffer[i] = new float[sizeX];
+	for(int s = 0; s < sizeY; ++s) {
+	    buffer[s] = new float[sizeX];
 	}
 	for(int i = 0; i < src.getNumberOfRows(); i++){//for each pixel in roi
 		for(int j = 0; j<src.getNumberOfColumns(); j++){
-			if(!roi.InROI(i,j)) continue;	//don't bother calculating
+			if(!roi.InROI(i,j)) {buffer[i][j]=0;continue;}	//don't bother calculating
 			buffer[i][j] = sobelMagnitude(src,chan,i,j);//get gradient magnitudes outside ROI
 		}
 	}
 	//BEGIN writeAdjustedGradValues
 	normalizeArray(buffer,src.getNumberOfRows(),src.getNumberOfColumns());
-
-
-
-
-
-
-
-
 	for(int i = 0; i < src.getNumberOfRows(); i++){//for each pixel in roi
 		for(int j = 0; j<src.getNumberOfColumns(); j++){
 			if (roi.InROI(i,j)){

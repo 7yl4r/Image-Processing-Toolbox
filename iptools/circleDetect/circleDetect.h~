@@ -5,12 +5,13 @@
 #include "../roi/roi.h"
 
 #include <math.h>	//for round()
+#include <algorithm>	//for sort()
 
 class circleDetect{
 	public:	
 		circleDetect();
 		virtual ~circleDetect();
-		static void hough(image &edgeImg, image &tgt);
+		static void hough(image &edgeImg, image &tgt, ROI roi);
 };
 
 #endif

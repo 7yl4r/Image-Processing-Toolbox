@@ -7,7 +7,7 @@ echo "=====GreyScale Thresholded Sobel Operator Edge Detection 'edgeDetect'=====
 echo `./bin/iptool images_for_demo/crossSec.pgm demo_edgeDetect_GreySilicon.pgm roi.txt edgeDetect 100`
 echo `./bin/iptool images_for_demo/bubbleChamber.pgm demo_edgeDetect_BubbleChamber.pgm roi.txt edgeDetect 200`
 echo `./bin/iptool images_for_demo/moonCraters2.pgm demo_edgeDetect_MoonCraters2.pgm roi.txt edgeDetect 300`
-echo `./bin/iptool images_for_demo/moonCraters.pgm demo_edgeDetect_MoonCraters.pgm roi.txt edgeDetect 400`
+echo `./bin/iptool images_for_demo/moonCraters.pgm demo_edgeDetect_MoonCraters.pgm ALL edgeDetect 400`
 
 echo "=====Thresholded Gradient Image Display on color images 'edgeDetect'====="
 echo `./bin/iptool images_for_demo/micro3.ppm demo_edgeDetectColor.ppm roi.txt edgeDetect 300`
@@ -23,7 +23,6 @@ echo `./bin/iptool images_for_demo/baboon.pgm demo_gradMagnitudeDisplay.pgm roi.
 
 echo `./bin/iptool images_for_demo/bubbleChamber.pgm demo_edgeMag_BubbleChamber.pgm roi.txt edgeDetect`
 echo `./bin/iptool images_for_demo/moonCraters2.pgm demo_edgeMag_MoonCraters2.pgm roi.txt edgeDetect`
-echo `./bin/iptool images_for_demo/moonCraters.pgm demo_edgeMag_MoonCraters.pgm roi.txt edgeDetect`
 
 echo ""
 echo " *** Circle Detection Using Hough Transform *** "

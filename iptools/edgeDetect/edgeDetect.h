@@ -6,7 +6,9 @@
 
 #include <sstream>
 #include <math.h>
-#include <vector>
+
+#include <algorithm>	//for sort()
+
 
 class edgeDetect
 {

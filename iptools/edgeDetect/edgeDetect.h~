@@ -6,6 +6,7 @@
 
 #include <sstream>
 #include <math.h>
+#include <vector>
 
 class edgeDetect
 {

@@ -23,7 +23,6 @@ echo `./bin/iptool images_for_demo/baboon.pgm demo_gradMagnitudeDisplay.pgm roi.
 
 echo `./bin/iptool images_for_demo/bubbleChamber.pgm demo_edgeMag_BubbleChamber.pgm roi.txt edgeDetect`
 echo `./bin/iptool images_for_demo/moonCraters2.pgm demo_edgeMag_MoonCraters2.pgm roi.txt edgeDetect`
-echo `./bin/iptool images_for_demo/moonCraters.pgm demo_edgeMag_MoonCraters.pgm roi.txt edgeDetect`
 
 echo ""
 echo " *** Circle Detection Using Hough Transform *** "
