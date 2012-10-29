@@ -1,0 +1,15 @@
+#ifndef GENERATEDISPLAY_H
+#define GENERATEDISPLAY_H
+
+#include "../image/image.h"
+#include "../roi/roi.h"
+
+class generateDisplay{
+	public:	
+		generateDisplay();
+		virtual ~generateDisplay();
+		static void 2Darray(int a[][], image &tgt);
+};
+
+#endif
+

@@ -43,43 +43,23 @@ float edgeDetect::sobelMagnitude(image &src, int chan, int x, int y){
 void edgeDetect::sobel(image &src, image &tgt, ROI roi, int chan){
 	tgt.copyImage(src);	//copy image to tgt (for areas not in ROI)
 	float buffer[src.getNumberOfRows()][src.getNumberOfColumns()];// = {0};	//buffer to temporarily store grad values
-	for(int i = 0; i < src.getNumberOfRows(); i++){//for each pixel in roi
+	for(int i = 0; i < src.getNumberOfRows(); i++){//for each pixel in image
 		for(int j = 0; j<src.getNumberOfColumns(); j++){
 			buffer[i][j] = sobelMagnitude(src,chan,i,j);//get gradient magnitudes
 		}
 	}
-	//BEGIN writeAdjustedGradValues
-	//get boundary values to adjust range of values to 0-255
-	float upperOutlierLimit = 200.0f;
-	float lowerOutlierLimit = 0.0f;
-	int pixOnFloor = 0,pixOnCeil = 0;	//count of pixels outside set dynamic range
- 	float max = lowerOutlierLimit;	//max pixel value
-	float min = upperOutlierLimit;	//min pixel value
-	for(int i = 0; i < src.getNumberOfRows(); i++){//for each pixel in roi
-		for(int j = 0; j<src.getNumberOfColumns(); j++){
-			// skip outliers
-			if ( buffer[i][j] > upperOutlierLimit||buffer[i][j] < lowerOutlierLimit){
-				if( buffer[i][j] > upperOutlierLimit){
-					pixOnCeil++;
-				}else   pixOnFloor++; 
-			}else{ //check for max/mins
-				if ( buffer[i][j] > max) max = buffer[i][j];
-				if ( buffer[i][j] < min) min = buffer[i][j];
-			}
-		}
-	}
-	cout<<"max="<<max<<" onCeiling="<<pixOnCeil<<", min="<<min<<" onFloor="<<pixOnFloor<<'\n';
-	for(int i = 0; i < src.getNumberOfRows(); i++){//for each pixel in roi
-		for(int j = 0; j<src.getNumberOfColumns(); j++){
-			if (roi.InROI(i,j)){
-				// write (adjusted) grad value to tgt image
-				tgt.setPixel(i,j,chan,round(buffer[i][j]*max/255.0f - min));
-			}else{
-				tgt.setPixel(i,j,chan,src.getPixel(i,j,chan));
-			}
-		}
-	}
-	//END writeAdjustedGradValues
+	//for each sub-roi
+		//select section of array
+		arrayDisplay::floorAndCeiling(buffer,image &tgt,roi, 0, 200);
+
+
+
+
+
+
+
+
+
 }
 
 void edgeDetect::sobel(image &src, image &tgt, ROI roi, int chan, int thresh){

@@ -358,6 +358,19 @@ int executeFunction(image src,char tgtLoc[], ROI roi, int ac, char *av[]){
 		}else{//is grey
 			edgeDetect::directional(src,tgt,roi,GREY,T,A1,A2);
 		}
+	}else if (!strncasecmp(av[0],"circleDetect",MAXLEN)){
+		cout<<"attempting to detect circles...\n";
+		//BEGIN getEdgeImage
+		char edgeImgLoc[] = "CircleDetect_EdgeImg.pgm";
+		static int acc = 1;
+		char *avv[acc];
+		char fName[] = "edgeDetect"; 
+		executeFunction(src,edgeImgLoc,roi,acc,avv);
+		image edgeImg;
+		edgeImg.read(edgeImgLoc);
+		//END getEdgeImage
+		//TODO:note: is current magnitude image format good enough? (since some values are ceiling-ed) 
+		circleDetect::hough(edgeImg,tgt,roi);
 	}else{	//return err: command not recognized
 		cout<<"ERR: function "<<av[0]<<" not recognized\n";
 		return 1;

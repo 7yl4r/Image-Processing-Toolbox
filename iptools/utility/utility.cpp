@@ -20,8 +20,8 @@ bool utility::isImage(char fName[]){
 
 //checks file name for common video file extensions, returns true if recognized format
 bool utility::isVideo(char fName[]){
-	static int nExten = 10;	//number of extensions
-	char extensions[11][10] = {".flv",".avi",".mov",".mp4",".mpg",".mpeg",".wmv",".3gp",".asf",".rm",".swf"};
+	static int nExten = 12;	//number of extensions
+	char extensions[12][10] = {".flv",".avi",".mov",".mp4",".mpg",".mpeg",".wmv",".3gp",".asf",".rm",".swf","m1v"};
 	for(int i = 0; i < nExten ; i++){
 		if(strstr(fName,extensions[i])!='\0') return 1;
 	} //if none found
