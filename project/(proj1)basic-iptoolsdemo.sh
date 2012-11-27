@@ -1,8 +1,9 @@
 #!/bin/bash
-echo "This demo will use default images to demonstrate the basic capabilities of this image processing tool. Press enter to continue."
+inFile="./../../LAB1/DIPlab1/D1.png"
+
 read c
 echo " === simple 'add' === "
-echo `./bin/iptool images_for_demo/trainstation.pgm demo_add.pgm roi.txt add 100`
+echo `./bin/iptool $inFile demo_add.pgm roi.txt add 100`
 
 echo " === gray thresholding 'graythresh' === "
 echo `./bin/iptool images_for_demo/boats.pgm demo_graythresh.pgm roi.txt graythresh 100`

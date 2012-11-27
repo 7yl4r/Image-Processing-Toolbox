@@ -329,6 +329,7 @@ int executeFunction(image src,char tgtLoc[], ROI roi, int ac, char *av[]){
 				cout<<"threshold = "<<T<<"\n";
 				edgeDetect::sobel(HSIsrc,HSItgt,roi,BLUE,T);//Intensity=BLUE
 			}
+			tgt.resize(HSItgt);
 			colorSpace::HSItoRGB(HSItgt,tgt);
 		}else{//is grey
 			cout<<" to greyscale image...\n";
@@ -354,6 +355,7 @@ int executeFunction(image src,char tgtLoc[], ROI roi, int ac, char *av[]){
 			HSItgt.resize(src);
 			colorSpace::RGBtoHSI(src,HSIsrc);
 			edgeDetect::directional(HSIsrc,HSItgt,roi,BLUE,T,A1,A2);// edgeDetect on I (Intensity = BLUE)
+			tgt.resize(HSItgt);
 			colorSpace::HSItoRGB(HSItgt,tgt);
 		}else{//is grey
 			edgeDetect::directional(src,tgt,roi,GREY,T,A1,A2);
@@ -361,16 +363,23 @@ int executeFunction(image src,char tgtLoc[], ROI roi, int ac, char *av[]){
 	}else if (!strncasecmp(av[0],"circleDetect",MAXLEN)){
 		//BEGIN getEdgeImage
 		char edgeImgLoc[] = "circleDetect_EdgeImg.pgm";
-		static int acc = 1;
+		static int acc = 2;
 		char *avv[acc];
-		avv[0] = "edgeDetect"; 
+		char fname[] = "edgeDetect"; 
+		avv[0] = fname;
+		//char thresh[] = av[1];
+		avv[1] = av[1];
 		executeFunction(src,edgeImgLoc,roi,acc,avv);
 		image edgeImg;
 		edgeImg.read(edgeImgLoc);
 		//END getEdgeImage
 		//TODO:note: is current magnitude image format good enough? 
 		cout<<"attempting to detect circles...\n";
-		circleDetect::hough(edgeImg,tgt,roi);
+		image detectedCircles;
+		circleDetect::hough(edgeImg,detectedCircles,roi,atoi(av[2]));
+		detectedCircles.save("circleDetect_circlesDetected.pgm");
+		add::addGreyImage(src,detectedCircles,tgt,roi,RED);	//draw circles on orignal image
+
 	}else{	//return err: command not recognized
 		cout<<"ERR: function "<<av[0]<<" not recognized\n";
 		return 1;

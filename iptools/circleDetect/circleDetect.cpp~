@@ -59,27 +59,28 @@ void circleDetect::normalizeArray(float **buffer,int nRows,int nCols){
 
 
 /*-----------------------------------------------------------------------**/
-void circleDetect::hough(image &edgeImg, image &tgt, ROI roi){
-	int desiredR = 25;
+// rad = desired radius to detect TODO:make this a range
+void circleDetect::hough(image &edgeImg, image &tgt, ROI roi, int rad){
 	// parameter space for circle: x,y,R
-	int rMin = 20;	//radius (in pix?)
-	int rMax = 26;
-	int rDelta = 5;
+	int rMin = rad-1;	//radius (in pix?)
+	int rMax = rad+1;
+	int rDelta = 1;
 	int rSize = rMax-rMin+1;
-	int aMin = 0;	//possible x
-	int aMax = edgeImg.getNumberOfColumns()/2;
-	int aDelta = 20;
+	//NOTE: this next parts assumes that circle center is not on image edges to decrease search space
+	int aMin = 0+edgeImg.getNumberOfRows()*.1;	//possible x
+	int aMax = edgeImg.getNumberOfRows()*.9;
+	int aDelta = 1;
 	int aSize = aMax-aMin+1;
-	int bMin = 0;	//possible y
-	int bMax = edgeImg.getNumberOfRows()/2;
-	int bDelta = 20;
+	int bMin = 0+edgeImg.getNumberOfColumns()*.1;	//possible y
+	int bMax = edgeImg.getNumberOfColumns()*.9;
+	int bDelta = 1;
 	int bSize = bMax-bMin+1;
-
-	float ***acc = new float**[rSize];// = {0};	//accumulator array
+	cout<<"filling search space, computation is "<<aSize<<'x'<<bSize<<" for each edge image pixel. Be patient. Currently on pixel #:\n";
+	float ***acc = new float**[rSize+1];// = {0};	//accumulator array
 	for(int r = 0; r < rSize; ++r) {
-		acc[r] = new float*[aSize];
+		acc[r] = new float*[aSize+1];
 		for(int a = 0; a < aSize; ++a){
-			acc[r][a] = new float[bSize];
+			acc[r][a] = new float[bSize+1];
 		}
 	}
 //	int acc[rMax-rMin][aMax-aMin][bMax-bMin];	// set up accumulator array
@@ -89,14 +90,19 @@ void circleDetect::hough(image &edgeImg, image &tgt, ROI roi){
 		for (int j=0; j<edgeImg.getNumberOfColumns(); j++){
 			if(j%100==0&&i%100==0) cout<<"("<<i<<","<<j<<")\n";
 			int G = edgeImg.getPixel(i,j);// get gradient magnitude
-			if (roi.InROI(i,j)&&G>0){//skip pixels not in roi & if G!>0
+			if (roi.InROI(i,j)&&G>100){//skip pixels not in roi & if G!>0
 				// calculate the possible circle equations (cone?)
 				for(int a=aMin; a<aMax; a+=aDelta){ // for all x
 					for(int b=bMin; b<bMax; b+=bDelta){ // for all x// for all y
-						for(int r=rMin; r<rMax; r+=rDelta){
+						int r = sqrt(pow((a-i),2)+pow((b-j),2));
+						if(r<=rMax&&r>=rMin)
+							acc[r-rMin][a-aMin][b-bMin]+=1;
+/*						for(int r=rMin; r<rMax; r+=rDelta){
 //							if(j%50==0&&i%50==0) cout<<"["<<r<<"]["<<a<<"]["<<b<<"]\n";
-							acc[r-rMin][a-aMin][b-bMin] += G; // increment accumulator array
+							//acc[r-rMin][a-aMin][b-bMin] += G; // increment accumulator array
+							acc[r-rMin][a-aMin][b-bMin]+=1;
 						}
+*/
 					}
 				}
 			//}else{	
@@ -104,23 +110,69 @@ void circleDetect::hough(image &edgeImg, image &tgt, ROI roi){
 			}
 		}
 	}
-
+	cout<<"...done. Generating Display(s) of Hough-space\n";
+	system("mkdir radii");
 	int nRows = aSize/aDelta;
 	int nCols = bSize/bDelta;
-	normalizeArray(acc[desiredR-rMin],nRows,nCols);//adjust range of accumulator to 0-255 for display
-	tgt.resize(nRows,nCols);
-	for(int i = 0; i < nRows; i++){//for each pixel in roi
-		for(int j = 0; j<nCols; j++){
-			tgt.setPixel(i,j,acc[desiredR-rMin][i][j]);
+	int nImages = rSize/rDelta;
+	tgt.resize(edgeImg);
+//	normalizeArray(acc[desiredR-rMin],nRows,nCols);//adjust range of accumulator to 0-255 for display
+	for(int r = 0; r<nImages; r+=rDelta){	//for each radius
+		int desiredR = r+rMin;
+		for(int i = 0; i<nRows; i++){//for each pixel in hough space
+			for(int j = 0; j<nCols; j++){
+//				cout<<"["<<r<<"]["<<i<<"]["<<j<<"]\n";
+				tgt.setPixel(i+aMin,j+bMin,acc[r][i][j]);
+				//NOTE: tgt is used as buffer here
+			}
 		}
+		tgt.save(("radii/circleR"+utility::intToString(desiredR)+".pgm").c_str());
 	}
+	int frameRate = 24;//frame/sec
+	int bitRate = edgeImg.getNumberOfRows()*edgeImg.getNumberOfColumns()*frameRate;//calc lossless bitrate
+	system(("avconv -i radii/circleR%d.pgm -qscale 1 houghSpace.mp4"));//make Hough-space video
+//TODO: note: decreasing the frame rate does not extend video length (don't do it)
+//	system(("avconv -i radii/circleR%d.pgm -qscale 2 -r "+utility::intToString(frameRate)+" houghSpace.mp4").c_str());//make Hough-space video
+//	system("rm -r radii");	//cleanup
 
-
-
-	// display hough transform (2D projection?, at a set radius?)
-	//what size? tgt.resize()
-
-
+	cout<<"finding local maxima in hough space...\n";
+	int thresh = 250;
+	int nCircles=0;
+	image localMax;
+	localMax.resize(tgt);
+	tgt.deleteImage();	//clear previous image
+	tgt.resize(localMax);
+	while(nCircles<1&&thresh>0){	//detect at least 1 circle
+		//for each radius within range of acceptable radii
+		int plusMinusR = 1;//rad/4;
+		for(int r = rad-plusMinusR; r<rad+plusMinusR; r++){
+			for(int i = 1; i<nRows-1; i++){//for each pixel in hough space
+				for(int j = 1; j<nCols-1; j++){
+					// (pseudo)threshold hough space (drop off anything below thresh, keep values above thresh)
+					if(acc[r][i][j]>thresh //if above thresh
+					&& acc[r][i][j]>acc[r-1][i][j]//AND if Local Max
+					&& acc[r][i][j]>acc[r+1][i][j]
+					&& acc[r][i][j]>acc[r][i-1][j]
+					&& acc[r][i][j]>acc[r][i+1][j]
+					&& acc[r][i][j]>acc[r][i][j-1]
+					&& acc[r][i][j]>acc[r][i][j+1]){
+						acc[r][i][j] = 255;
+						nCircles++;
+						int a = i+aMin, b = j+bMin;
+						localMax.setPixel(a,b,acc[r][i][j]);// generate resulting binary image
+						//draw circle at desired radius for each white pixel
+						for(int th = 0; th<360; th++){
+							int x = round(a + r*cos(((float)th)*2.0f*3.1415f/180.0f));
+							int y = round(b + r*sin(((float)th)*2.0f*3.1415f/180.0f));
+							tgt.setPixel(x,y,255);
+						}
+					}//else{//not local max. do nothing
+				}
+			}
+		}
+		thresh -=20;
+	}
+	localMax.save(("circleDetect_"+utility::intToString(nCircles)+"LocalMaxAtR_"+utility::intToString(rad)+".pgm").c_str());
 	//BEGIN cleanupAccumulator
 	for(int r = 0; r < rSize; ++r) {
 		for(int a=0; a<aSize; ++a)
