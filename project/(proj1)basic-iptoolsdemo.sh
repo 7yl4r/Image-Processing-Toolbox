@@ -1,5 +1,5 @@
 #!/bin/bash
-inFile="./../../LAB1/DIPlab1/D1.png"
+echo "this basic demo shows some simple operations on sample images"
 
 read c
 echo " === simple 'add' === "

@@ -10,3 +10,15 @@
 *.lai
 *.la
 *.a
+
+# Backup files
+*~
+
+# Custom to this project
+./project/ROIs
+./project/radii
+./project/iptoolVidDecomp
+./project/iptoolVidRecomp
+*.mp4
+*.ppm
+*.pgm
