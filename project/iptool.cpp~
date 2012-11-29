@@ -260,6 +260,7 @@ int executeFunction(image src,char tgtLoc[], ROI roi, int ac, char *av[]){
         if (!strncasecmp(av[0],"add",MAXLEN)) {
 		//int value = atoi(av[1]);
         	add::addGrey(src,tgt,roi,atoi(av[1]));
+/* ======= ======= ======= ======= PROJECT 1 ======= ======= ======= ======= */
         }else if (!strncasecmp(av[0],"binarize",MAXLEN) 
 		|| !strncasecmp(av[0],"grayThresh",MAXLEN)
 		|| !strncasecmp(av[0],"greyThresh",MAXLEN)) {
@@ -290,6 +291,7 @@ int executeFunction(image src,char tgtLoc[], ROI roi, int ac, char *av[]){
 		//int wS = atoi(av[1]);	//window size
 		//int w  = atoi(av[2]);	//amount above mean
 		threshold::adapThresh(src,tgt,roi,atoi(av[1]),atoi(av[2]));
+/* ======= ======= ======= ======= PROJECT 2 ======= ======= ======= ======= */
         }else if (!strncasecmp(av[0],"equalizeGrey",MAXLEN)
 		|| !strncasecmp(av[0],"equalizeGray",MAXLEN)){
 		cout<<"performing greyscale histogram equalization.\n";
@@ -313,6 +315,7 @@ int executeFunction(image src,char tgtLoc[], ROI roi, int ac, char *av[]){
 		cout<<"working on this...\n";
 		int *histP =  equalize::getHist(src, roi.list[0], GREY);
 		equalize::drawHist( histP , tgt );
+/* ======= ======= ======= ======= PROJECT 3 ======= ======= ======= ======= */
 	}else if (!strncasecmp(av[0],"edgeDetect",MAXLEN)){
 		cout<<"applying sobel edge detection";
 		tgt.resize(src);
@@ -378,7 +381,11 @@ int executeFunction(image src,char tgtLoc[], ROI roi, int ac, char *av[]){
 		image detectedCircles;
 		circleDetect::hough(edgeImg,detectedCircles,roi,atoi(av[2]));
 		detectedCircles.save("circleDetect_circlesDetected.pgm");
-		add::addGreyImage(src,detectedCircles,tgt,roi,RED);	//draw circles on orignal image
+		add::addGreyImage(src,detectedCircles,tgt,roi,GREEN);	//draw circles on orignal image
+/* ======= ======= ======= ======= PROJECT 4 ======= ======= ======= ======= */
+	}else 	if (strncasecmp(argv[1],"Filtering",MAXLEN)==0){
+		fourier::filter();
+
 
 	}else{	//return err: command not recognized
 		cout<<"ERR: function "<<av[0]<<" not recognized\n";

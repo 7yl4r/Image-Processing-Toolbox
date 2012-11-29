@@ -13,5 +13,6 @@
 #include "colorSpace/colorSpace.h"
 #include "edgeDetect/edgeDetect.h"
 #include "circleDetect/circleDetect.h"
+#include "fourier/fourier.h"
 
 #endif

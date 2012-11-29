@@ -9,7 +9,6 @@ BIN_DIR=bin/
 
 EXEC = iptool
 
-
 all: $(EXEC)
 
 iptools:
@@ -18,7 +17,7 @@ iptools:
 clean:
 	$(RM) $(BIN_DIR)$(EXEC); make all
 
-DO_EXEC = g++ -o $(BIN_DIR)$@ $@.cpp -L ../lib -l iptools 
+DO_EXEC = g++ -o $(BIN_DIR)$@ $@.cpp -L ../lib -l iptools -lrfftw -lfftw -lm
 
 #------ now compile
 $(EXEC):   		iptools
